@@ -5,21 +5,21 @@ import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.Test
 
 class LoggerTest {
     val tag = "MyTag"
     val msg = "My message"
     val exception = RuntimeException()
 
-    @Before
+    @BeforeAll
     fun setUp() {
         mockkStatic(Log::class)
     }
 
-    @After
+    @AfterAll
     fun cleanUp() {
         unmockkStatic(Log::class)
     }

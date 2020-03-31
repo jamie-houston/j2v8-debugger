@@ -19,7 +19,6 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 object StethoHelper {
     var debugger: Debugger? = null
         private set
-        @VisibleForTesting get
 
     private var v8DebuggerRef: WeakReference<DebugHandler>? = null
     private var v8InspectorRef: WeakReference<V8Inspector>? = null

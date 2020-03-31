@@ -5,8 +5,8 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.json.JSONObject
-import org.junit.Assert.assertEquals
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase

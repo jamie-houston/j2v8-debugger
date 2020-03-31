@@ -5,9 +5,10 @@ import com.eclipsesource.v8.inspector.V8Inspector
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
@@ -17,6 +18,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  *
  * @see [Testing documentation](http://d.android.com/tools/testing)
  */
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StethoHelperTest {
 
     @Test
@@ -29,8 +31,8 @@ class StethoHelperTest {
 
         val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
 
-        assertTrue("No Debugger present", domains.any { it.javaClass == Debugger::class.java })
-        assertFalse("Stetho Debugger present", domains.any { it.javaClass == FacebookDebuggerStub::class.java })
+        assertTrue(domains.any { it.javaClass == Debugger::class.java }, "No Debugger present")
+        assertFalse(domains.any { it.javaClass == FacebookDebuggerStub::class.java }, "Stetho Debugger present")
     }
 
     @Test
@@ -41,8 +43,8 @@ class StethoHelperTest {
 
         val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
 
-        assertTrue("No Debugger present", domains.any { it.javaClass == Runtime::class.java })
-        assertFalse("Stetho Debugger present", domains.any { it.javaClass == FacebookRuntimeBase::class.java })
+        assertTrue(domains.any { it.javaClass == Runtime::class.java }, "No Debugger present")
+        assertFalse(domains.any { it.javaClass == FacebookRuntimeBase::class.java }, "Stetho Debugger present")
     }
 
     @Test
