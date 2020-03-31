@@ -1,6 +1,7 @@
 package com.alexii.j2v8debugger
 
 import android.support.annotation.VisibleForTesting
+import android.util.Log
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.Releasable
@@ -11,6 +12,8 @@ import com.eclipsesource.v8.debug.*
 import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.eclipsesource.v8.debug.mirror.ValueMirror
+import com.eclipsesource.v8.inspector.DebuggerConnectionListener
+import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.utils.TypeAdapter
 import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -53,7 +56,8 @@ class Debugger(
 
     //xxx: consider using WeakReference
     /** Must be called on [v8Executor]]. */
-    var v8Debugger: DebugHandler? = null
+//    var v8Debugger: DebugHandler? = null
+    var v8Inspector: V8Inspector? = null
         private set
         @VisibleForTesting get
 
@@ -74,15 +78,17 @@ class Debugger(
         const val TAG = "j2v8-debugger"
     }
 
-    fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
-        this.v8Debugger = v8Debugger
-        this.v8Executor = v8Executor
+//    fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
+    fun initialize(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
+//        this.v8Debugger = v8Debugger
+    this.v8Executor = v8Executor
+    this.v8Inspector = v8Inspector
 
-        v8Debugger.addBreakHandler(v8ToChromeBreakHandler)
-    }
+//        v8Debugger.addBreakHandler(v8ToChromeBreakHandler)
+}
 
     private fun validateV8Initialized() {
-        if (v8Executor == null || v8Debugger == null) {
+        if (v8Executor == null || v8Inspector == null) {
             throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
         }
     }
@@ -106,7 +112,17 @@ class Debugger(
             //avoid app being freezed when no debugging happening anymore
             v8ToChromeBreakHandler.resume()
             //xxx:  remove breakpoints instead of disabling them
-            v8Executor!!.execute { v8Debugger?.disableAllBreakPoints() }
+//            v8Executor!!.execute { v8Debugger?.disableAllBreakPoints() }
+
+//            v8Executor!!.execute { v8Inspector?.removeDebuggerConnectionListener(object: DebuggerConnectionListener{
+//                override fun onDebuggerDisconnected() {
+//                    Log.i("V8Helper", "*** onDebuggerDisconnected")
+//                }
+//
+//                override fun onDebuggerConnected() {
+//                    Log.i("V8Helper", "*** onDebuggerConnected")
+//                }
+//            }) }
 
 
             //xxx: check if something else is needed to be done here
@@ -189,8 +205,12 @@ class Debugger(
              */
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
+                v8Inspector?.dispatchProtocolMessage(params.toString())
 
-                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
+
+//                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
+//                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
+                val breakpointId = 1
 
                 SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
@@ -205,7 +225,7 @@ class Debugger(
         // -> do best effort to remove breakpoint when executor is free
         runStethoSafely {
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
-            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
+//            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
         }
     }
 
@@ -404,38 +424,38 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
 
         try {
             val frames = (0 until state.frameCount)
-                    .map {
-                        val frame = state.getFrame(it)
-                        val scriptId = frame.sourceLocation.scriptName
+                .map {
+                    val frame = state.getFrame(it)
+                    val scriptId = frame.sourceLocation.scriptName
 
-                        val location = Debugger.Location(scriptId, eventData.sourceLine, eventData.sourceColumn)
+                    val location = Debugger.Location(scriptId, eventData.sourceLine, eventData.sourceColumn)
 
-                        //j2v8 has api to access only local variables. Scope class has no get-, but only .setVariableValue() method
-                        val knowVariables = frame.getKnownVariables()
+                    //j2v8 has api to access only local variables. Scope class has no get-, but only .setVariableValue() method
+                    val knowVariables = frame.getKnownVariables()
 
-                        //todo: release objects by id on Resume when https://github.com/facebook/stetho/pull/614 is implemented.
-                        //When debugger disconnects Runtime's session with stored object will be GC as well.
-                        val storedVariablesId = Runtime.mapObject(currentPeerProvider(), knowVariables)
+                    //todo: release objects by id on Resume when https://github.com/facebook/stetho/pull/614 is implemented.
+                    //When debugger disconnects Runtime's session with stored object will be GC as well.
+                    val storedVariablesId = Runtime.mapObject(currentPeerProvider(), knowVariables)
 
-                        //consider using like Runtime.Session.objectForRemote()
-                        val remoteObject = RemoteObject()
-                                //check and use Runtime class here
-                                .apply { objectId = storedVariablesId.toString() }
-                                .apply { type = Runtime.ObjectType.OBJECT }
-                                .apply { className = "Object" }
-                                .apply { description = "Object" }
+                    //consider using like Runtime.Session.objectForRemote()
+                    val remoteObject = RemoteObject()
+                        //check and use Runtime class here
+                        .apply { objectId = storedVariablesId.toString() }
+                        .apply { type = Runtime.ObjectType.OBJECT }
+                        .apply { className = "Object" }
+                        .apply { description = "Object" }
 
-                        val scopeName = Scope.ScopeType.Local.name.toLowerCase(Locale.ENGLISH)
-                        val syntheticScope = Debugger.Scope(scopeName, remoteObject)
+                    val scopeName = Scope.ScopeType.Local.name.toLowerCase(Locale.ENGLISH)
+                    val syntheticScope = Debugger.Scope(scopeName, remoteObject)
 
-                        val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptIdToUrl(scriptId), listOf(syntheticScope))
+                    val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptIdToUrl(scriptId), listOf(syntheticScope))
 
-                        //clean-up v8 native resources
-                        frame.release()
-                        //xxx: check if Mirror-s need to released (e.g. frame.function)
+                    //clean-up v8 native resources
+                    frame.release()
+                    //xxx: check if Mirror-s need to released (e.g. frame.function)
 
-                        callFrame
-                    }
+                    callFrame
+                }
 
             val pausedEvent = Debugger.PausedEvent(frames)
 

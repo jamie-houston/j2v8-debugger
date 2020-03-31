@@ -41,8 +41,8 @@ dependencies {
     implementation project(':j2v8backport')
 
     // J2V8 Runtime
-    api 'com.eclipsesource.j2v8:j2v8:4.8.2@aar'
-    api 'com.facebook.stetho:stetho:1.5.0'
+    api 'com.eclipsesource.j2v8:j2v8:6.1.0@aar'
+    api 'com.facebook.stetho:stetho:1.5.1'
 
 //    //run tests on mac os x on latest j2v8 version available
 //    //todo update to android versiob when available).

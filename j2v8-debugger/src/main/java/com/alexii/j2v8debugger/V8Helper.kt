@@ -1,9 +1,13 @@
 package com.alexii.j2v8debugger
 
+import android.util.Log
 import com.alexii.j2v8debugger.V8Helper.releaseV8Debugger
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.debug.DebugHandler
 import com.eclipsesource.v8.debug.DebugHandler.DEBUG_OBJECT_NAME
+import com.eclipsesource.v8.inspector.DebuggerConnectionListener
+import com.eclipsesource.v8.inspector.V8Inspector
+import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import java.lang.reflect.Field
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
@@ -41,21 +45,38 @@ object V8Helper {
             return v8FlagsValue != null && v8FlagsValue.contains(DEBUG_OBJECT_NAME)
         }
 
+    private val debugV8InspectorDelegate = DebugV8InspectorDelegate()
+    private val debugInspector : V8Inspector? = null
+    private val debuggerConnectionListener = object: DebuggerConnectionListener{
+        override fun onDebuggerDisconnected() {
+            Log.i("V8Helper", "*** onDebuggerDisconnected")
+        }
+
+        override fun onDebuggerConnected() {
+            Log.i("V8Helper", "*** onDebuggerConnected")
+        }
+    }
 
     /**
      * @return new or existing v8 debugger object.
      * Must be released before [V8.release] is called.
      */
-    fun getOrCreateV8Debugger(v8: V8): DebugHandler {
-        if (v8Debugger == null) {
+//    fun getOrCreateV8Debugger(v8: V8): DebugHandler {
+    fun getOrCreateV8Debugger(v8: V8) : V8Inspector{
+//        if (v8Debugger == null) {
             if (!isDebuggingEnabled) {
                 throw IllegalStateException("V8 Debugging is not enabled. "
                         + "Call V8Helper.enableV8Debugging() before creation of V8 runtime!")
             }
 
-            v8Debugger = DebugHandler(v8)
-        }
-        return v8Debugger as DebugHandler;
+
+            val debugInspector = V8Inspector.createV8Inspector(v8, debugV8InspectorDelegate, "test")
+            debugInspector.addDebuggerConnectionListener(debuggerConnectionListener)
+
+//            v8Debugger = DebugHandler(v8)
+//        }
+//        return v8Debugger as DebugHandler
+        return debugInspector
     }
 
     fun releaseV8Debugger() {
@@ -79,9 +100,11 @@ object V8Helper {
 
         val v8Future: Future<V8> = v8Executor.submit(Callable {
             val runtime = V8.createV8Runtime()
-            val v8Debugger = getOrCreateV8Debugger(runtime)
+            val inspector = getOrCreateV8Debugger(runtime)
 
-            StethoHelper.initializeWithV8Debugger(v8Debugger, v8Executor)
+
+//            StethoHelper.initializeWithV8Debugger(v8Debugger, v8Executor)
+            StethoHelper.initializeWithV8Debugger(inspector, v8Executor)
 
             runtime
         })
@@ -104,4 +127,15 @@ object V8Helper {
 fun V8.releaseDebuggable(reportMemoryLeaks: Boolean = true) {
     V8Helper.releaseV8Debugger()
     this.release(reportMemoryLeaks)
+}
+
+class DebugV8InspectorDelegate : V8InspectorDelegate {
+    override fun waitFrontendMessageOnPause() {
+        Log.i("V8Helper", "*** waitFrontendMessageOnPause")
+    }
+
+    override fun onResponse(p0: String?) {
+        Log.i("V8Helper", "*** onResponse $p0")
+    }
+
 }

@@ -5,6 +5,7 @@ import android.support.annotation.VisibleForTesting
 import android.util.Log
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.debug.DebugHandler
+import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.InspectorModulesProvider
 import com.facebook.stetho.Stetho
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
@@ -21,6 +22,7 @@ object StethoHelper {
         @VisibleForTesting get
 
     private var v8DebuggerRef: WeakReference<DebugHandler>? = null
+    private var v8InspectorRef: WeakReference<V8Inspector>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
 
     /**
@@ -80,8 +82,10 @@ object StethoHelper {
     /**
      * @param v8Executor executor, where V8 should be previously initialized and further will be called on.
      */
-    fun initializeWithV8Debugger(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
-        v8DebuggerRef = WeakReference(v8Debugger)
+//    fun initializeWithV8Debugger(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
+    fun initializeWithV8Debugger(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
+//        v8DebuggerRef = WeakReference(v8Debugger)
+        v8InspectorRef = WeakReference(v8Inspector)
         v8ExecutorRef = WeakReference(v8Executor)
 
         bindV8ToChromeDebuggerIfReady()
@@ -99,12 +103,15 @@ object StethoHelper {
     private fun bindV8ToChromeDebuggerIfReady() {
         val chromeDebuggerAttached = debugger != null
 
-        val v8Debugger = v8DebuggerRef?.get()
+//        val v8Debugger = v8DebuggerRef?.get()
+        val v8Inspector = v8InspectorRef?.get()
         val v8Executor = v8ExecutorRef?.get()
-        val v8DebuggerInitialized = v8Debugger != null && v8Executor != null
+//        val v8DebuggerInitialized = v8Debugger != null && v8Executor != null
+        val v8DebuggerInitialized = v8Inspector != null && v8Executor != null
 
         if (v8DebuggerInitialized && chromeDebuggerAttached) {
-            v8Executor!!.execute { bindV8DebuggerToChromeDebugger(debugger!!, v8Debugger!!, v8Executor) }
+//            v8Executor!!.execute { bindV8DebuggerToChromeDebugger(debugger!!, v8Debugger!!, v8Executor) }
+            v8Executor!!.execute { bindV8DebuggerToChromeDebugger(debugger!!, v8Inspector!!, v8Executor) }
         }
     }
 
@@ -112,8 +119,12 @@ object StethoHelper {
      * Shoulds be called when both Chrome debugger and V8 debugger is ready
      *  (When Chrome DevTools UI is open and V8 is created in debug mode with debugger object).
      */
-    private fun bindV8DebuggerToChromeDebugger(chromeDebugger: Debugger, v8Debugger: DebugHandler, v8Executor: ExecutorService) {
-        chromeDebugger.initialize(v8Debugger, v8Executor)
+//    private fun bindV8DebuggerToChromeDebugger(chromeDebugger: Debugger, v8Debugger: DebugHandler, v8Executor: ExecutorService) {
+//        chromeDebugger.initialize(v8Debugger, v8Executor)
+//    }
+    private fun bindV8DebuggerToChromeDebugger(chromeDebugger: Debugger, v8Inspector: V8Inspector, v8Executor: ExecutorService) {
+        chromeDebugger.initialize(v8Inspector, v8Executor)
+//        chromeDebugger.initialize(v8Debugger, v8Executor)
     }
 
     /**
