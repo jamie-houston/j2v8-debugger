@@ -1,15 +1,15 @@
 package com.alexii.j2v8debugging.sample
 
 import android.os.Bundle
-import android.support.design.widget.Snackbar
-import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import androidx.appcompat.app.AppCompatActivity
 import com.alexii.j2v8debugger.StethoHelper
 import com.alexii.j2v8debugger.V8Helper
 import com.alexii.j2v8debugger.releaseDebuggable
 import com.alexii.j2v8debugging.R
 import com.eclipsesource.v8.V8
+import com.google.android.material.snackbar.Snackbar
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_example.*
 import java.util.*

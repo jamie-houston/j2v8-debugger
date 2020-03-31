@@ -1,18 +1,15 @@
 package com.alexii.j2v8debugger
 
-import android.support.annotation.VisibleForTesting
-import android.util.Log
+import androidx.annotation.VisibleForTesting
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8Object
-import com.alexii.j2v8backport.V8ObjectUtilsBackport
 import com.eclipsesource.v8.V8Value
 import com.eclipsesource.v8.debug.*
 import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.eclipsesource.v8.debug.mirror.ValueMirror
-import com.eclipsesource.v8.inspector.DebuggerConnectionListener
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.utils.TypeAdapter
 import com.eclipsesource.v8.utils.V8ObjectUtils
@@ -205,7 +202,12 @@ class Debugger(
              */
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
-                v8Inspector?.dispatchProtocolMessage(params.toString())
+                val protocolMessage = JSONObject()
+                protocolMessage.put("id",1)
+                protocolMessage.put("method","Debugger.setBreakpointByUrl")
+                protocolMessage.put("params", params)
+
+                v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
 
 
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
@@ -534,10 +536,6 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
                     else -> TypeAdapter.DEFAULT
                 }
             }
-        } catch (e: java.lang.NoClassDefFoundError) {
-            //if J2V8 < 4.8 is used in runtime: TypeAdapter and V8ObjectUtils.getValue() is not yet available
-            // Also no need for catching java.lang.NoSuchMethodError as TypeAdapter() is called 1st.
-            V8ObjectUtilsBackport.getValue(v8Object)
         } catch (e: IllegalStateException) {
             "{unknown value}: " + v8Object
         }

@@ -1,7 +1,7 @@
 package com.alexii.j2v8debugger.utils
 
-import android.support.annotation.VisibleForTesting
 import android.util.Log
+import androidx.annotation.VisibleForTesting
 
 internal var logger = Logger()
     @VisibleForTesting get

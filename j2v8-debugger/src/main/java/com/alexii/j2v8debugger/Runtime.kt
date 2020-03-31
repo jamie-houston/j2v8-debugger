@@ -1,6 +1,6 @@
 package com.alexii.j2v8debugger
 
-import android.support.annotation.VisibleForTesting
+import androidx.annotation.VisibleForTesting
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult

@@ -34,7 +34,7 @@ object LogUtils {
         return chromeDevtoolsStackTraceElement?.methodName.orEmpty()
     }
 
-    private fun isChromeDevToolsClass(clazz: Class<*>?) = ChromeDevtoolsDomain::class.java.isAssignableFrom(clazz)
+    private fun isChromeDevToolsClass(clazz: Class<*>) = ChromeDevtoolsDomain::class.java.isAssignableFrom(clazz)
 
     private fun isChromeDevToolsMethod(clazz: Class<*>, methodName: String?): Boolean {
         val method = clazz.methods.find { method -> method.name == methodName }
