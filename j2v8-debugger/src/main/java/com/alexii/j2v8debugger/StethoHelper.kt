@@ -15,6 +15,8 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
+import com.facebook.stetho.inspector.protocol.module.Inspector as FacebookInspectorStub
+
 
 object StethoHelper {
     var debugger: Debugger? = null
@@ -64,7 +66,9 @@ object StethoHelper {
         val inspectorModules = ArrayList<ChromeDevtoolsDomain>()
         for (defaultModule in defaultInspectorModules) {
             if (FacebookDebuggerStub::class != defaultModule::class
-                && FacebookRuntimeBase::class != defaultModule::class) {
+                && FacebookRuntimeBase::class != defaultModule::class
+                && FacebookInspectorStub::class != defaultModule::class
+                ) {
                 inspectorModules.add(defaultModule)
             }
         }
@@ -72,6 +76,7 @@ object StethoHelper {
         debugger = Debugger(scriptSourceProvider)
         inspectorModules.add(debugger!!)
         inspectorModules.add(Runtime(factory))
+        inspectorModules.add(Inspector())
 
         bindV8ToChromeDebuggerIfReady()
 

@@ -102,6 +102,17 @@ object V8Helper {
             val runtime = V8.createV8Runtime()
             val inspector = getOrCreateV8Debugger(runtime)
 
+            // Default Chrome DevTool protocol messages
+            inspector.dispatchProtocolMessage("{\"id\":1,\"method\":\"Profiler.enable\"}")
+            inspector.dispatchProtocolMessage("{\"id\":2,\"method\":\"Runtime.enable\"}")
+            inspector.dispatchProtocolMessage("{\"id\":3,\"method\":\"Debugger.enable\",\"params\":{\"maxScriptsCacheSize\":10000000}}")
+            inspector.dispatchProtocolMessage("{\"id\":4,\"method\":\"Debugger.setPauseOnExceptions\",\"params\":{\"state\":\"uncaught\"}}")
+            inspector.dispatchProtocolMessage("{\"id\":5,\"method\":\"Debugger.setAsyncCallStackDepth\",\"params\":{\"maxDepth\":32}}");
+            inspector.dispatchProtocolMessage("{\"id\":6,\"method\":\"Runtime.getIsolateId\"}");
+            inspector.dispatchProtocolMessage("{\"id\":7,\"method\":\"Debugger.setBlackboxPatterns\",\"params\":{\"patterns\":[]}}");
+            inspector.dispatchProtocolMessage("{\"id\":8,\"method\":\"Runtime.runIfWaitingForDebugger\"}");
+
+//            runtime.schedulePauseOnNextStatement(inspector)
 
 //            StethoHelper.initializeWithV8Debugger(v8Debugger, v8Executor)
             StethoHelper.initializeWithV8Debugger(inspector, v8Executor)

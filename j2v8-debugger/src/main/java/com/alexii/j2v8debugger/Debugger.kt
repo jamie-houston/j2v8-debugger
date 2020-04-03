@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
@@ -11,6 +12,7 @@ import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.eclipsesource.v8.debug.mirror.ValueMirror
 import com.eclipsesource.v8.inspector.V8Inspector
+import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.eclipsesource.v8.utils.TypeAdapter
 import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -75,14 +77,14 @@ class Debugger(
         const val TAG = "j2v8-debugger"
     }
 
-//    fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
+    //    fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
     fun initialize(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
 //        this.v8Debugger = v8Debugger
-    this.v8Executor = v8Executor
-    this.v8Inspector = v8Inspector
+        this.v8Executor = v8Executor
+        this.v8Inspector = v8Inspector
 
 //        v8Debugger.addBreakHandler(v8ToChromeBreakHandler)
-}
+    }
 
     private fun validateV8Initialized() {
         if (v8Executor == null || v8Inspector == null) {
@@ -96,8 +98,8 @@ class Debugger(
             connectedPeer = peer
 
             scriptSourceProvider.allScriptIds
-                    .map { ScriptParsedEvent(it) }
-                    .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
+                .map { ScriptParsedEvent(it) }
+                .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
 
             peer.registerDisconnectReceiver(::onDisconnect)
         }
@@ -203,18 +205,20 @@ class Debugger(
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
                 val protocolMessage = JSONObject()
-                protocolMessage.put("id",1)
-                protocolMessage.put("method","Debugger.setBreakpointByUrl")
+                protocolMessage.put("id", 100)
+                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
                 protocolMessage.put("params", params)
+                Log.i("Debugger", "setBreakpointByUrl: $params")
 
                 v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
+//                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": "11", "lineNumber": ${params.get("lineNumber")}}}}""")
 
 
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
-                val breakpointId = 1
+                val breakpointId = 100
 
-                SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
+                SetBreakpointByUrlResponse("100", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
             responseFuture.get()
@@ -227,6 +231,11 @@ class Debugger(
         // -> do best effort to remove breakpoint when executor is free
         runStethoSafely {
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
+            val protocolMessage = JSONObject()
+            protocolMessage.put("id", 100)
+            protocolMessage.put("method", "Debugger.removeBreakpoint")
+            protocolMessage.put("params", params)
+            v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
 //            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
         }
     }
@@ -280,7 +289,8 @@ class Debugger(
     )
 
     class GetScriptSourceRequest : JsonRpcResult {
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         var scriptId: String? = null
     }
 
@@ -291,18 +301,22 @@ class Debugger(
 
     class SetBreakpointByUrlRequest : JsonRpcResult {
         //script id
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         var url: String? = null
 
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         var lineNumber: Int? = null
 
         //unused for now
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         var columnNumber: Int? = null
 
         //unused for now
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         var condition: String? = null
 
         val scriptId get() = urlToScriptId(url)
@@ -315,13 +329,15 @@ class Debugger(
 
         location: Location
     ) : JsonRpcResult {
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         val locations: List<Location> = listOf(location)
     }
 
     class RemoveBreakpointRequest : JsonRpcResult {
         //script id
-        @field:JsonProperty @JvmField
+        @field:JsonProperty
+        @JvmField
         var breakpointId: String? = null
     }
 
