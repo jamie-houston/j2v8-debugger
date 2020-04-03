@@ -6,6 +6,7 @@ import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
+import com.facebook.stetho.inspector.protocol.module.SimpleBooleanResult
 import org.json.JSONObject
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
@@ -48,4 +49,9 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult = adaptee.evaluate(peer, params)
+
+    @ChromeDevtoolsMethod
+    fun enable(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        return SimpleBooleanResult(true)
+    }
 }

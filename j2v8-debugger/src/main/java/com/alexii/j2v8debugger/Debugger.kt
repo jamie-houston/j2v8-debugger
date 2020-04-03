@@ -6,7 +6,12 @@ import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.V8Value
-import com.eclipsesource.v8.debug.*
+import com.eclipsesource.v8.debug.BreakEvent
+import com.eclipsesource.v8.debug.BreakHandler
+import com.eclipsesource.v8.debug.DebugHandler
+import com.eclipsesource.v8.debug.EventData
+import com.eclipsesource.v8.debug.ExecutionState
+import com.eclipsesource.v8.debug.StepAction
 import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.eclipsesource.v8.debug.mirror.ValueMirror
@@ -229,6 +234,11 @@ class Debugger(
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
 //            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
         }
+    }
+
+    @ChromeDevtoolsMethod
+    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult{
+        return SimpleIntegerResult(5)
     }
 
     /**
@@ -545,5 +555,15 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
         this.release()
 
         return javaObject
+    }
+}
+
+class SimpleIntegerResult : JsonRpcResult {
+    @JsonProperty(required = true)
+    var result = 0
+
+    constructor() {}
+    constructor(result: Int) {
+        this.result = result
     }
 }
