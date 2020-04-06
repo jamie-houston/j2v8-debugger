@@ -99,6 +99,7 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+        Log.i("Debugger", "*** enabled with $params")
         runStethoSafely {
             connectedPeer = peer
 
@@ -218,22 +219,23 @@ class Debugger(
              */
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
-                val protocolMessage = JSONObject()
-                protocolMessage.put("id",  V8Helper.dispatchId.incrementAndGet())
-                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
-                protocolMessage.put("params", params)
+//                val protocolMessage = JSONObject()
+//                protocolMessage.put("id",  V8Helper.dispatchId.incrementAndGet())
+
+//                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
+//                protocolMessage.put("params", params)
 //                protocolMessage.put("method", "Debugger.setBreakpoint")
 //                protocolMessage.put("params", JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber)))
+                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber))
                 Log.i("Debugger", "setBreakpointByUrl: incoming $params")
-                Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
+//                Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
 
-                v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
+//                V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", params.toString())
+                V8Helper.dispatchMessage("Debugger.setBreakpoint", breakpointParams.toString())
+//                v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
 //                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": ${V8Helper.scriptId}, "lineNumber": ${params.get("lineNumber")}}}}""")
 
-
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
-//                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
-                val breakpointId = 100
 
                 SetBreakpointByUrlResponse("1:${request.lineNumber}:0:${request.url}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
@@ -246,13 +248,14 @@ class Debugger(
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
         //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
         // -> do best effort to remove breakpoint when executor is free
-        runStethoSafely {
+        runStethoAndV8Safely {
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
-            val protocolMessage = JSONObject()
-            protocolMessage.put("id", V8Helper.dispatchId.incrementAndGet())
-            protocolMessage.put("method", "Debugger.removeBreakpoint")
-            protocolMessage.put("params", params)
-            v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
+//            val protocolMessage = JSONObject()
+//            protocolMessage.put("id", V8Helper.dispatchId.incrementAndGet())
+//            protocolMessage.put("method", "Debugger.removeBreakpoint")
+//            protocolMessage.put("params", params)
+//            v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
+            V8Helper.dispatchMessage("Debugger.removeBreakpoint", params.toString())
 //            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
         }
     }

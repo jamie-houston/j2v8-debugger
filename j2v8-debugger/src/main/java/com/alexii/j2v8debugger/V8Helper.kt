@@ -17,12 +17,14 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicInteger
 
+typealias MessageCallback = () -> Unit
 /**
  * Debug-related utility functionality for [V8]
  */
 object V8Helper {
 //    private var v8Debugger: DebugHandler? = null
     private var v8Inspector: V8Inspector? = null
+    private val messageQueue: MutableMap<String, MessageCallback> = mutableMapOf()
 
     val dispatchId = AtomicInteger(0)
 
@@ -52,13 +54,20 @@ object V8Helper {
             return v8FlagsValue != null && v8FlagsValue.contains(DEBUG_OBJECT_NAME)
         }
 
+    fun dispatchMessage(method: String, params: String? = null){
+        val message = "{\"id\":${dispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": $params}"
+        Log.i("V8Helper", "dispatching $message")
+        v8Inspector?.dispatchProtocolMessage(message)
+    }
+
     private val debugV8InspectorDelegate = object: V8InspectorDelegate{
         override fun waitFrontendMessageOnPause() {
             Log.i("V8Helper", "*** waitFrontendMessageOnPause")
 
             // resume Debugger
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Runtime.runIfWaitingForDebugger\"}")
-            v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
+            dispatchMessage("Debugger.resume")
+//            v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
         }
 
         override fun onResponse(p0: String?) {
@@ -69,12 +78,12 @@ object V8Helper {
 //                message.put("id", 200)
 //                v8Inspector?.dispatchProtocolMessage(message.toString())
 //                v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
-                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                val pausedEvent = Debugger.PausedEvent(frames)
+//                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+//                val pausedEvent = Debugger.PausedEvent(frames)
 
-                logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
+//                logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
 
-                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
+//                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
             }
             if (message.optString("method") == "Debugger.scriptParsed"){
                 scriptId = message.getJSONObject("params").getString("scriptId")
@@ -141,13 +150,16 @@ object V8Helper {
 
             // Default Chrome DevTool protocol messages
 //            inspector.dispatchProtocolMessage("{\"id\":1,\"method\":\"Profiler.enable\"}")
-            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.enable\"}")
-            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.enable\",\"params\":{\"maxScriptsCacheSize\":10000000}}")
+            dispatchMessage("Runtime.enable")
+//            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.enable\"}")
+            dispatchMessage("Debugger.enable", "{\"maxScriptsCacheSize\":10000000}")
+//            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.enable\",\"params\":{\"maxScriptsCacheSize\":10000000}}")
 //            inspector.dispatchProtocolMessage("{\"id\":4,\"method\":\"Debugger.setPauseOnExceptions\",\"params\":{\"state\":\"uncaught\"}}")
 //            inspector.dispatchProtocolMessage("{\"id\":5,\"method\":\"Debugger.setAsyncCallStackDepth\",\"params\":{\"maxDepth\":32}}");
 //            inspector.dispatchProtocolMessage("{\"id\":6,\"method\":\"Runtime.getIsolateId\"}");
 //            inspector.dispatchProtocolMessage("{\"id\":7,\"method\":\"Debugger.setBlackboxPatterns\",\"params\":{\"patterns\":[]}}");
-            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
+            dispatchMessage("Runtime.runIfWaitingForDebugger")
+//            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
 
 //            runtime.schedulePauseOnNextStatement(inspector)
 
