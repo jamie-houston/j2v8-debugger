@@ -66,7 +66,8 @@ object V8Helper {
 
             // resume Debugger
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Runtime.runIfWaitingForDebugger\"}")
-            dispatchMessage("Debugger.resume")
+//            dispatchMessage("Debugger.resume")
+            dispatchMessage("Debugger.stepOver")
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
         }
 
@@ -157,6 +158,7 @@ object V8Helper {
 //            inspector.dispatchProtocolMessage("{\"id\":4,\"method\":\"Debugger.setPauseOnExceptions\",\"params\":{\"state\":\"uncaught\"}}")
 //            inspector.dispatchProtocolMessage("{\"id\":5,\"method\":\"Debugger.setAsyncCallStackDepth\",\"params\":{\"maxDepth\":32}}");
 //            inspector.dispatchProtocolMessage("{\"id\":6,\"method\":\"Runtime.getIsolateId\"}");
+            dispatchMessage("Runtime.getIsolateId")
 //            inspector.dispatchProtocolMessage("{\"id\":7,\"method\":\"Debugger.setBlackboxPatterns\",\"params\":{\"patterns\":[]}}");
             dispatchMessage("Runtime.runIfWaitingForDebugger")
 //            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");

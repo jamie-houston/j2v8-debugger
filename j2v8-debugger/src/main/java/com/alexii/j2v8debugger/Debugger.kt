@@ -226,12 +226,12 @@ class Debugger(
 //                protocolMessage.put("params", params)
 //                protocolMessage.put("method", "Debugger.setBreakpoint")
 //                protocolMessage.put("params", JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber)))
-                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber))
+//                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber))
                 Log.i("Debugger", "setBreakpointByUrl: incoming $params")
 //                Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
 
-//                V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", params.toString())
-                V8Helper.dispatchMessage("Debugger.setBreakpoint", breakpointParams.toString())
+                V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", params.toString())
+//                V8Helper.dispatchMessage("Debugger.setBreakpoint", breakpointParams.toString())
 //                v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
 //                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": ${V8Helper.scriptId}, "lineNumber": ${params.get("lineNumber")}}}}""")
 
@@ -255,7 +255,7 @@ class Debugger(
 //            protocolMessage.put("method", "Debugger.removeBreakpoint")
 //            protocolMessage.put("params", params)
 //            v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
-            V8Helper.dispatchMessage("Debugger.removeBreakpoint", params.toString())
+            v8Executor!!.execute {V8Helper.dispatchMessage("Debugger.removeBreakpoint", params.toString())}
 //            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
         }
     }
