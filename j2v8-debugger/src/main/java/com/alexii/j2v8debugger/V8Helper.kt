@@ -2,17 +2,20 @@ package com.alexii.j2v8debugger
 
 import android.util.Log
 import com.alexii.j2v8debugger.V8Helper.releaseV8Debugger
+import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.debug.DebugHandler
 import com.eclipsesource.v8.debug.DebugHandler.DEBUG_OBJECT_NAME
 import com.eclipsesource.v8.inspector.DebuggerConnectionListener
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
+import com.facebook.stetho.inspector.network.NetworkPeerManager
 import org.json.JSONObject
 import java.lang.reflect.Field
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Debug-related utility functionality for [V8]
@@ -20,6 +23,8 @@ import java.util.concurrent.Future
 object V8Helper {
 //    private var v8Debugger: DebugHandler? = null
     private var v8Inspector: V8Inspector? = null
+
+    val dispatchId = AtomicInteger(0)
 
     /**
      * Enables V8 debugging. All new runtimes will be created with debugging enabled.
@@ -53,7 +58,7 @@ object V8Helper {
 
             // resume Debugger
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Runtime.runIfWaitingForDebugger\"}")
-            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Debugger.resume\"}")
+            v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
         }
 
         override fun onResponse(p0: String?) {
@@ -63,7 +68,13 @@ object V8Helper {
             if (message.optString("method") == "Debugger.paused") {
 //                message.put("id", 200)
 //                v8Inspector?.dispatchProtocolMessage(message.toString())
-                v8Inspector?.dispatchProtocolMessage("{\"id\":200,\"method\":\"Debugger.resume\"}")
+//                v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
+                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                val pausedEvent = Debugger.PausedEvent(frames)
+
+                logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
+
+                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
             }
             if (message.optString("method") == "Debugger.scriptParsed"){
                 scriptId = message.getJSONObject("params").getString("scriptId")
@@ -130,13 +141,13 @@ object V8Helper {
 
             // Default Chrome DevTool protocol messages
 //            inspector.dispatchProtocolMessage("{\"id\":1,\"method\":\"Profiler.enable\"}")
-            inspector.dispatchProtocolMessage("{\"id\":2,\"method\":\"Runtime.enable\"}")
-            inspector.dispatchProtocolMessage("{\"id\":3,\"method\":\"Debugger.enable\",\"params\":{\"maxScriptsCacheSize\":10000000}}")
+            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.enable\"}")
+            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.enable\",\"params\":{\"maxScriptsCacheSize\":10000000}}")
 //            inspector.dispatchProtocolMessage("{\"id\":4,\"method\":\"Debugger.setPauseOnExceptions\",\"params\":{\"state\":\"uncaught\"}}")
 //            inspector.dispatchProtocolMessage("{\"id\":5,\"method\":\"Debugger.setAsyncCallStackDepth\",\"params\":{\"maxDepth\":32}}");
 //            inspector.dispatchProtocolMessage("{\"id\":6,\"method\":\"Runtime.getIsolateId\"}");
 //            inspector.dispatchProtocolMessage("{\"id\":7,\"method\":\"Debugger.setBlackboxPatterns\",\"params\":{\"patterns\":[]}}");
-            inspector.dispatchProtocolMessage("{\"id\":8,\"method\":\"Runtime.runIfWaitingForDebugger\"}");
+            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
 
 //            runtime.schedulePauseOnNextStatement(inspector)
 

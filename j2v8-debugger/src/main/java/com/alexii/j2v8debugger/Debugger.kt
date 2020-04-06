@@ -219,11 +219,11 @@ class Debugger(
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
                 val protocolMessage = JSONObject()
-                protocolMessage.put("id", 100)
-//                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
-//                protocolMessage.put("params", params)
-                protocolMessage.put("method", "Debugger.setBreakpoint")
-                protocolMessage.put("params", JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber)))
+                protocolMessage.put("id",  V8Helper.dispatchId.incrementAndGet())
+                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
+                protocolMessage.put("params", params)
+//                protocolMessage.put("method", "Debugger.setBreakpoint")
+//                protocolMessage.put("params", JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber)))
                 Log.i("Debugger", "setBreakpointByUrl: incoming $params")
                 Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
 
@@ -249,7 +249,7 @@ class Debugger(
         runStethoSafely {
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
             val protocolMessage = JSONObject()
-            protocolMessage.put("id", 100)
+            protocolMessage.put("id", V8Helper.dispatchId.incrementAndGet())
             protocolMessage.put("method", "Debugger.removeBreakpoint")
             protocolMessage.put("params", params)
             v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
@@ -266,11 +266,16 @@ class Debugger(
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject){
         runStethoAndV8Safely {
             val protocolMessage = JSONObject()
-            protocolMessage.put("id", 50)
+            protocolMessage.put("id", V8Helper.dispatchId.incrementAndGet())
             protocolMessage.put("method", "Debugger.setBreakpointsActive")
             protocolMessage.put("params", params)
             v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
         }
+    }
+
+    @ChromeDevtoolsMethod
+    fun paused(peer: JsonRpcPeer, params: JSONObject){
+        Log.i("Debugger", "paused with $params")
     }
 
     /**
