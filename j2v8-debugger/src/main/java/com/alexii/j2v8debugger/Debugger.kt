@@ -148,11 +148,20 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun getScriptSource(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
-        return runStethoSafely {
+        return runStethoAndV8Safely {
             try {
                 val request = dtoMapper.convertValue(params, GetScriptSourceRequest::class.java)
 
                 val scriptSource = scriptSourceProvider.getSource(request.scriptId!!)
+
+//                val protocolMessage = JSONObject()
+//                protocolMessage.put("id", 100)
+//                protocolMessage.put("method", "Debugger.getScriptSource")
+//                protocolMessage.put("params", params)
+//                protocolMessage.put("params", JSONObject().put("scriptId", request.scriptId))
+                Log.i("Debugger", "getScriptSource: $params")
+
+//                v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString()) }
 
                 GetScriptSourceResponse(scriptSource)
             } catch (e: Exception) {
@@ -211,19 +220,22 @@ class Debugger(
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
                 val protocolMessage = JSONObject()
                 protocolMessage.put("id", 100)
-                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
-                protocolMessage.put("params", params)
-                Log.i("Debugger", "setBreakpointByUrl: $params")
+//                protocolMessage.put("method", "Debugger.setBreakpointByUrl")
+//                protocolMessage.put("params", params)
+                protocolMessage.put("method", "Debugger.setBreakpoint")
+                protocolMessage.put("params", JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber)))
+                Log.i("Debugger", "setBreakpointByUrl: incoming $params")
+                Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
 
                 v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
-//                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": "11", "lineNumber": ${params.get("lineNumber")}}}}""")
+//                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": ${V8Helper.scriptId}, "lineNumber": ${params.get("lineNumber")}}}}""")
 
 
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
                 val breakpointId = 100
 
-                SetBreakpointByUrlResponse("100", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
+                SetBreakpointByUrlResponse("1:${request.lineNumber}:0:${request.url}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
             responseFuture.get()
@@ -247,7 +259,18 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult{
-        return SimpleIntegerResult(5)
+        return SimpleIntegerResult(32)
+    }
+
+    @ChromeDevtoolsMethod
+    fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject){
+        runStethoAndV8Safely {
+            val protocolMessage = JSONObject()
+            protocolMessage.put("id", 50)
+            protocolMessage.put("method", "Debugger.setBreakpointsActive")
+            protocolMessage.put("params", params)
+            v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}
+        }
     }
 
     /**
