@@ -10,6 +10,7 @@ import com.eclipsesource.v8.inspector.DebuggerConnectionListener
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.facebook.stetho.inspector.network.NetworkPeerManager
+import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONObject
 import java.lang.reflect.Field
 import java.util.concurrent.Callable
@@ -61,9 +62,14 @@ object V8Helper {
         v8Inspector?.dispatchProtocolMessage(message)
     }
 
+    private var initialBreak = true
     private val debugV8InspectorDelegate = object: V8InspectorDelegate{
         override fun waitFrontendMessageOnPause() {
-            Log.i("V8Helper", "*** waitFrontendMessageOnPause")
+//            if (initialBreak){
+//                dispatchMessage("Debugger.resume")
+//                initialBreak = false
+//            }
+//            Log.i("V8Helper", "*** waitFrontendMessageOnPause")
 
             // resume Debugger
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Runtime.runIfWaitingForDebugger\"}")
@@ -76,12 +82,19 @@ object V8Helper {
             Log.i("V8Helper", "*** onResponse $p0")
             inspectorResponse = p0
             val message = JSONObject(p0)
-            val responseMethod = message.optString("method")
-            if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed"){
-                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                networkPeerManager?.sendNotificationToPeers(responseMethod, message.optJSONObject("params"))
-            }
-            if (responseMethod == "Debugger.paused") {
+            if (message.has("id")){
+                // This is a command response
+            } else if (message.has("method")){
+                // This is an event
+                //val responseMethod = message.optString("method")
+//                dispatchMessage(message.optString("method"), message.optString("params"))
+//                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
+                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                    networkPeerManager?.sendNotificationToPeers(message.optString("method"), message.optJSONObject("params"))
+//                }
+//                if (responseMethod == "Debugger.paused") {
+//                    var dtoMapper = ObjectMapper()
+//                val request = dtoMapper.convertValue(message.optJSONObject("params"), Debugger.PausedEvent::class.java)
 //                message.put("id", 200)
 //                v8Inspector?.dispatchProtocolMessage(message.toString())
 //                v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
@@ -91,10 +104,11 @@ object V8Helper {
 //                logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
 
 //                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
-            }
-            if (messageQueue.isNotEmpty() && responseMethod == messageQueue[0]){
-                scriptId = message.getJSONObject("params").getString("scriptId")
-                messageQueue.remove(responseMethod)
+//                }
+//                if (messageQueue.isNotEmpty() && responseMethod == messageQueue[0]) {
+//                    scriptId = message.getJSONObject("params").getString("scriptId")
+//                    messageQueue.remove(responseMethod)
+//                }
             }
         }
     }

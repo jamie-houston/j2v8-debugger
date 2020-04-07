@@ -66,7 +66,7 @@ class Debugger(
         @VisibleForTesting get
 
     //xxx: consider encapsulate BreakHandler and DebugHandler into the separate class
-    private val v8ToChromeBreakHandler = V8ToChromeDevToolsBreakHandler(::connectedPeer)
+//    private val v8ToChromeBreakHandler = V8ToChromeDevToolsBreakHandler(::connectedPeer)
 
     /**
      * Executor where V8 scripts are being executed on. Used by [v8Debugger].
@@ -113,13 +113,16 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?){
+        // Why is this being called?? It's an old part of CDP
         Log.i("Debugger", "Set overlay: $params")
     }
 
     @ChromeDevtoolsMethod
-    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?){
+    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?) {
         Log.i("Debugger", "evaluateOnCallFrame: $params")
-        V8Helper.dispatchMessage("Debugger.evaluateOnCallFrame", params.toString())
+        runStethoSafely {
+            v8Executor?.execute { V8Helper.dispatchMessage("Debugger.evaluateOnCallFrame", params.toString()) }
+        }
     }
 
     @ChromeDevtoolsMethod
@@ -131,7 +134,10 @@ class Debugger(
         runStethoSafely {
             connectedPeer = null
             //avoid app being freezed when no debugging happening anymore
-            v8ToChromeBreakHandler.resume()
+            v8Executor?.execute {
+                V8Helper.dispatchMessage("Debugger.resume")
+            }
+//            v8ToChromeBreakHandler.resume()
             //xxx:  remove breakpoints instead of disabling them
 //            v8Executor!!.execute { v8Debugger?.disableAllBreakPoints() }
 
@@ -191,29 +197,47 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely { v8ToChromeBreakHandler.resume() }
+        runStethoSafely {
+            v8Executor?.execute {
+                V8Helper.dispatchMessage("Debugger.resume")
+            }
+        }
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logChromeDevToolsCalled()
+        v8Executor?.execute {
+            V8Helper.dispatchMessage("Debugger.pause")
+        }
 
         //check what's needed here
     }
 
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely { v8ToChromeBreakHandler.stepOver() }
+        runStethoSafely {
+            v8Executor?.execute {
+                V8Helper.dispatchMessage("Debugger.stepOver")
+            }
+        }
     }
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely { v8ToChromeBreakHandler.stepInto() }
+        runStethoSafely {
+            v8Executor?.execute {
+                V8Helper.dispatchMessage("Debugger.stepInto")
+            }
+        }
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely { v8ToChromeBreakHandler.stepOut() }
+        runStethoSafely {
+            v8Executor?.execute {
+                V8Helper.dispatchMessage("Debugger.stepOut")
+            }
+        }
     }
 
     @ChromeDevtoolsMethod
@@ -294,6 +318,8 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun paused(peer: JsonRpcPeer, params: JSONObject){
+        var dtoMapper = ObjectMapper()
+        val request = dtoMapper.convertValue(params, PausedEvent::class.java)
         Log.i("Debugger", "paused with $params")
     }
 
@@ -329,9 +355,10 @@ class Debugger(
     }
 
     private fun valideV8NotSuspended() {
-        if (v8ToChromeBreakHandler.suspended) {
-            throw IllegalStateException("Can't peform ${LogUtils.getChromeDevToolsMethodName()} while paused in debugger.")
-        }
+        // TODO: Still applicable?
+//        if (v8ToChromeBreakHandler.suspended) {
+//            throw IllegalStateException("Can't peform ${LogUtils.getChromeDevToolsMethodName()} while paused in debugger.")
+//        }
     }
 
     /**
