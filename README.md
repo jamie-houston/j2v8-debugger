@@ -110,6 +110,9 @@ If Guava is already used in project - MoreExecutors and [ListenableFuture](https
 
  Reason: not implemented.
 
+### Useful Links
+https://github.com/cyrus-and/chrome-remote-interface/wiki/Inspect-the-inspector
+
 ### License
 
 ```

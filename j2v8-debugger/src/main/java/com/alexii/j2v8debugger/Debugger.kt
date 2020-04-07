@@ -17,7 +17,6 @@ import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.eclipsesource.v8.debug.mirror.ValueMirror
 import com.eclipsesource.v8.inspector.V8Inspector
-import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.eclipsesource.v8.utils.TypeAdapter
 import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -266,18 +265,19 @@ class Debugger(
 //                protocolMessage.put("params", params)
 //                protocolMessage.put("method", "Debugger.setBreakpoint")
 //                protocolMessage.put("params", JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber)))
-//                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", V8Helper.scriptId).put("lineNumber", request.lineNumber))
                 Log.i("Debugger", "setBreakpointByUrl: incoming $params")
 //                Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
 
-                V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", params.toString())
+                val breakpointParams = JSONObject().put("lineNumber", request.lineNumber).put("url", "hello-world").put("columnNumber", request.columnNumber)
+                V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", breakpointParams.toString())
+//                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", "hello-world").put("lineNumber", request.lineNumber))
 //                V8Helper.dispatchMessage("Debugger.setBreakpoint", breakpointParams.toString())
 //                v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
 //                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": ${V8Helper.scriptId}, "lineNumber": ${params.get("lineNumber")}}}}""")
 
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 
-                SetBreakpointByUrlResponse("1:${request.lineNumber}:0:${request.url}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
+                SetBreakpointByUrlResponse("1:${request.lineNumber}:${request.columnNumber}:${request.url}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
             responseFuture.get()
@@ -309,7 +309,7 @@ class Debugger(
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject){
         runStethoAndV8Safely {
             val protocolMessage = JSONObject()
-            protocolMessage.put("id", V8Helper.dispatchId.incrementAndGet())
+            protocolMessage.put("id", V8Helper.nextDispatchId.incrementAndGet())
             protocolMessage.put("method", "Debugger.setBreakpointsActive")
             protocolMessage.put("params", params)
             v8Executor?.execute { v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())}

@@ -2,15 +2,12 @@ package com.alexii.j2v8debugger
 
 import android.util.Log
 import com.alexii.j2v8debugger.V8Helper.releaseV8Debugger
-import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8
-import com.eclipsesource.v8.debug.DebugHandler
 import com.eclipsesource.v8.debug.DebugHandler.DEBUG_OBJECT_NAME
 import com.eclipsesource.v8.inspector.DebuggerConnectionListener
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.facebook.stetho.inspector.network.NetworkPeerManager
-import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONObject
 import java.lang.reflect.Field
 import java.util.concurrent.Callable
@@ -23,12 +20,8 @@ typealias MessageCallback = (JSONObject) -> Unit
  * Debug-related utility functionality for [V8]
  */
 object V8Helper {
-//    private var v8Debugger: DebugHandler? = null
     private var v8Inspector: V8Inspector? = null
-//    private val messageQueue: MutableMap<String, MessageCallback> = mutableMapOf()
-    private val messageQueue: MutableList<String> = mutableListOf()
-
-    val dispatchId = AtomicInteger(0)
+    val nextDispatchId = AtomicInteger(0)
 
     /**
      * Enables V8 debugging. All new runtimes will be created with debugging enabled.
@@ -38,7 +31,7 @@ object V8Helper {
      * @see com.eclipsesource.v8.debug.V8DebugServer.configureV8ForDebugging
      * @see com.eclipsesource.v8.debug.DebugHandler
      */
-    fun enableDebugging() {
+    private fun enableDebugging() {
         V8.setFlags("-expose-debug-as=$DEBUG_OBJECT_NAME")
     }
 
@@ -57,12 +50,11 @@ object V8Helper {
         }
 
     fun dispatchMessage(method: String, params: String? = null){
-        val message = "{\"id\":${dispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": $params}"
+        val message = "{\"id\":${nextDispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": $params}"
         Log.i("V8Helper", "dispatching $message")
         v8Inspector?.dispatchProtocolMessage(message)
     }
 
-    private var initialBreak = true
     private val debugV8InspectorDelegate = object: V8InspectorDelegate{
         override fun waitFrontendMessageOnPause() {
 //            if (initialBreak){
@@ -86,11 +78,17 @@ object V8Helper {
                 // This is a command response
             } else if (message.has("method")){
                 // This is an event
-                //val responseMethod = message.optString("method")
+                val responseMethod = message.optString("method")
+                if (responseMethod == "Debugger.scriptParsed"){
+                    val params = message.getJSONObject("params")
+                    if (params.optString("url").isNotEmpty()){
+                        scriptId = params.optString("scriptId")
+                    }
+                }
 //                dispatchMessage(message.optString("method"), message.optString("params"))
 //                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
                     val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                    networkPeerManager?.sendNotificationToPeers(message.optString("method"), message.optJSONObject("params"))
+                    networkPeerManager?.sendNotificationToPeers(responseMethod, message.optJSONObject("params"))
 //                }
 //                if (responseMethod == "Debugger.paused") {
 //                    var dtoMapper = ObjectMapper()
@@ -104,10 +102,6 @@ object V8Helper {
 //                logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
 
 //                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
-//                }
-//                if (messageQueue.isNotEmpty() && responseMethod == messageQueue[0]) {
-//                    scriptId = message.getJSONObject("params").getString("scriptId")
-//                    messageQueue.remove(responseMethod)
 //                }
             }
         }
@@ -171,20 +165,14 @@ object V8Helper {
             val inspector = getOrCreateV8Debugger(runtime)
 
             // Default Chrome DevTool protocol messages
-//            inspector.dispatchProtocolMessage("{\"id\":1,\"method\":\"Profiler.enable\"}")
             dispatchMessage("Runtime.enable")
-//            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.enable\"}")
             dispatchMessage("Debugger.enable", "{\"maxScriptsCacheSize\":10000000}")
-//            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.enable\",\"params\":{\"maxScriptsCacheSize\":10000000}}")
-//            inspector.dispatchProtocolMessage("{\"id\":4,\"method\":\"Debugger.setPauseOnExceptions\",\"params\":{\"state\":\"uncaught\"}}")
-//            inspector.dispatchProtocolMessage("{\"id\":5,\"method\":\"Debugger.setAsyncCallStackDepth\",\"params\":{\"maxDepth\":32}}");
-//            inspector.dispatchProtocolMessage("{\"id\":6,\"method\":\"Runtime.getIsolateId\"}");
+            dispatchMessage("Debugger.setPauseOnExceptions", "{\"params\": {\"state\": \"none\"}}")
+            dispatchMessage("Debugger.setAsyncCallStackDepth", "{\"params\":{\"maxDepth\":32}}");
+            // Target Doamin?  V8 S/B only target, correct?
+            // Necessary?
             dispatchMessage("Runtime.getIsolateId")
-//            inspector.dispatchProtocolMessage("{\"id\":7,\"method\":\"Debugger.setBlackboxPatterns\",\"params\":{\"patterns\":[]}}");
-
-//            val setScriptId = {params: JSONObject -> scriptId = params.getString("scriptId")}
-//            messageQueue["Debugger.scriptParsed", setScriptId]
-            messageQueue.add("Debugger.scriptParsed")
+            dispatchMessage("Debugger.setBlackboxPatterns","{\"params\":{\"patterns\":[]}}");
 
             dispatchMessage("Runtime.runIfWaitingForDebugger")
 //            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
