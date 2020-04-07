@@ -111,6 +111,22 @@ class Debugger(
         }
     }
 
+    @ChromeDevtoolsMethod
+    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?){
+        Log.i("Debugger", "Set overlay: $params")
+    }
+
+    @ChromeDevtoolsMethod
+    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?){
+        Log.i("Debugger", "evaluateOnCallFrame: $params")
+        V8Helper.dispatchMessage("Debugger.evaluateOnCallFrame", params.toString())
+    }
+
+    @ChromeDevtoolsMethod
+    fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?){
+        Log.i("Debugger", "setSkipAllPauses: $params")
+    }
+
     private fun onDisconnect() {
         runStethoSafely {
             connectedPeer = null

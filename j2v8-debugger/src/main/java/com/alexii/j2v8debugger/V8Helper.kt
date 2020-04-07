@@ -17,14 +17,15 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicInteger
 
-typealias MessageCallback = () -> Unit
+typealias MessageCallback = (JSONObject) -> Unit
 /**
  * Debug-related utility functionality for [V8]
  */
 object V8Helper {
 //    private var v8Debugger: DebugHandler? = null
     private var v8Inspector: V8Inspector? = null
-    private val messageQueue: MutableMap<String, MessageCallback> = mutableMapOf()
+//    private val messageQueue: MutableMap<String, MessageCallback> = mutableMapOf()
+    private val messageQueue: MutableList<String> = mutableListOf()
 
     val dispatchId = AtomicInteger(0)
 
@@ -67,7 +68,7 @@ object V8Helper {
             // resume Debugger
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Runtime.runIfWaitingForDebugger\"}")
 //            dispatchMessage("Debugger.resume")
-            dispatchMessage("Debugger.stepOver")
+//            dispatchMessage("Debugger.stepOver")
 //            v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
         }
 
@@ -75,7 +76,12 @@ object V8Helper {
             Log.i("V8Helper", "*** onResponse $p0")
             inspectorResponse = p0
             val message = JSONObject(p0)
-            if (message.optString("method") == "Debugger.paused") {
+            val responseMethod = message.optString("method")
+            if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed"){
+                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                networkPeerManager?.sendNotificationToPeers(responseMethod, message.optJSONObject("params"))
+            }
+            if (responseMethod == "Debugger.paused") {
 //                message.put("id", 200)
 //                v8Inspector?.dispatchProtocolMessage(message.toString())
 //                v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
@@ -86,8 +92,9 @@ object V8Helper {
 
 //                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
             }
-            if (message.optString("method") == "Debugger.scriptParsed"){
+            if (messageQueue.isNotEmpty() && responseMethod == messageQueue[0]){
                 scriptId = message.getJSONObject("params").getString("scriptId")
+                messageQueue.remove(responseMethod)
             }
         }
     }
@@ -160,6 +167,11 @@ object V8Helper {
 //            inspector.dispatchProtocolMessage("{\"id\":6,\"method\":\"Runtime.getIsolateId\"}");
             dispatchMessage("Runtime.getIsolateId")
 //            inspector.dispatchProtocolMessage("{\"id\":7,\"method\":\"Debugger.setBlackboxPatterns\",\"params\":{\"patterns\":[]}}");
+
+//            val setScriptId = {params: JSONObject -> scriptId = params.getString("scriptId")}
+//            messageQueue["Debugger.scriptParsed", setScriptId]
+            messageQueue.add("Debugger.scriptParsed")
+
             dispatchMessage("Runtime.runIfWaitingForDebugger")
 //            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
 
