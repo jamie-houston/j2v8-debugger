@@ -81,12 +81,17 @@ object V8Helper {
                 val responseMethod = message.optString("method")
                 if (responseMethod == "Debugger.scriptParsed"){
                     val params = message.getJSONObject("params")
+//                    dispatchMessage("Debugger.getPossibleBreakpoints", "{\"start\": {\"scriptId\": \"${params.optString("scriptId")}\", \"lineNumber\": 0, \"columnNumber\": 0}, \"end\": {\"scriptId\": \"${params.optString("scriptId")}\", \"lineNumber\": 10, \"columnNumber\": 0}}")
+                    dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"${params.get("scriptId")}\"}")
                     if (params.optString("url").isNotEmpty()){
-                        scriptId = params.optString("url")
+                        scriptId = params.optString("scriptId")
+//                        dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"$scriptId\"}")
+//                        dispatchMessage("Debugger.getPossibleBreakpoints", "{\"start\": {\"scriptId\": \"$scriptId\", \"lineNumber\": 0, \"columnNumber\": 0}, \"end\": {\"scriptId\": \"$scriptId\", \"lineNumber\": 10, \"columnNumber\": 0}}")
                     }
                 }
 //                dispatchMessage(message.optString("method"), message.optString("params"))
 //                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
+                Log.i("V8Helper", "*** peer notification $responseMethod with ${message.optString("params")}")
                     val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                     networkPeerManager?.sendNotificationToPeers(responseMethod, message.optJSONObject("params"))
 //                }

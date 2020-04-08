@@ -100,6 +100,9 @@ class Debugger(
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
         Log.i("Debugger", "*** enabled with $params")
         runStethoSafely {
+//            val parameters = JSONObject().put("scriptId", "hello-world").put("scriptSource", scriptSourceProvider.getSource("hello-world"))
+//            v8Executor?.execute { V8Helper.dispatchMessage("Debugger.setScriptSource", parameters.toString())}
+//            V8Helper.dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"hello-world\"}")
             connectedPeer = peer
 
             scriptSourceProvider.allScriptIds
@@ -270,7 +273,7 @@ class Debugger(
 
                 val breakpointParams = JSONObject().put("lineNumber", request.lineNumber).put("url", "hello-world").put("columnNumber", request.columnNumber)
                 V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", breakpointParams.toString())
-//                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", "hello-world").put("lineNumber", request.lineNumber))
+//                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", "10").put("lineNumber", request.lineNumber).put("columnNumber", request.columnNumber))
 //                V8Helper.dispatchMessage("Debugger.setBreakpoint", breakpointParams.toString())
 //                v8Inspector?.dispatchProtocolMessage(protocolMessage.toString())
 //                v8Inspector?.dispatchProtocolMessage("""{"id": 100", "method": "Debugger.setBreakpoint", "params": {"location": {"scriptId": ${V8Helper.scriptId}, "lineNumber": ${params.get("lineNumber")}}}}""")
