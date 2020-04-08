@@ -74,26 +74,35 @@ object V8Helper {
             Log.i("V8Helper", "*** onResponse $p0")
             inspectorResponse = p0
             val message = JSONObject(p0)
-            if (message.has("id")){
+            if (message.has("id")) {
                 // This is a command response
-            } else if (message.has("method")){
+            } else if (message.has("method")) {
+                val params = message.optJSONObject("params")
                 // This is an event
                 val responseMethod = message.optString("method")
-                if (responseMethod == "Debugger.scriptParsed"){
-                    val params = message.getJSONObject("params")
+                if (responseMethod == "Debugger.scriptParsed") {
 //                    dispatchMessage("Debugger.getPossibleBreakpoints", "{\"start\": {\"scriptId\": \"${params.optString("scriptId")}\", \"lineNumber\": 0, \"columnNumber\": 0}, \"end\": {\"scriptId\": \"${params.optString("scriptId")}\", \"lineNumber\": 10, \"columnNumber\": 0}}")
                     dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"${params.get("scriptId")}\"}")
-                    if (params.optString("url").isNotEmpty()){
+                    if (params.optString("url").isNotEmpty()) {
                         scriptId = params.optString("scriptId")
 //                        dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"$scriptId\"}")
 //                        dispatchMessage("Debugger.getPossibleBreakpoints", "{\"start\": {\"scriptId\": \"$scriptId\", \"lineNumber\": 0, \"columnNumber\": 0}, \"end\": {\"scriptId\": \"$scriptId\", \"lineNumber\": 10, \"columnNumber\": 0}}")
                     }
+                } else if (responseMethod == "Debugger.breakpointResolved"){
+
+                    val location = params.getJSONObject("location")
+                    location.put("scriptId", "hello-world")
+                    val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
+                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                    Log.i("V8Helper", "*** breakpoint resolved with $response")
+                    networkPeerManager?.sendNotificationToPeers(responseMethod, response)
+
+                } else if (responseMethod == "Debugger.paused") {
+                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                    networkPeerManager?.sendNotificationToPeers(responseMethod, params)
                 }
 //                dispatchMessage(message.optString("method"), message.optString("params"))
 //                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
-                Log.i("V8Helper", "*** peer notification $responseMethod with ${message.optString("params")}")
-                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                    networkPeerManager?.sendNotificationToPeers(responseMethod, message.optJSONObject("params"))
 //                }
 //                if (responseMethod == "Debugger.paused") {
 //                    var dtoMapper = ObjectMapper()
