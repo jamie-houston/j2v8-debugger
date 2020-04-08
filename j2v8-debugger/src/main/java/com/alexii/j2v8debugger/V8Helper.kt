@@ -168,11 +168,11 @@ object V8Helper {
             dispatchMessage("Runtime.enable")
             dispatchMessage("Debugger.enable", "{\"maxScriptsCacheSize\":10000000}")
             dispatchMessage("Debugger.setPauseOnExceptions", "{\"params\": {\"state\": \"none\"}}")
-            dispatchMessage("Debugger.setAsyncCallStackDepth", "{\"params\":{\"maxDepth\":32}}");
+            dispatchMessage("Debugger.setAsyncCallStackDepth", "{\"params\":{\"maxDepth\":32}}")
             // Target Doamin?  V8 S/B only target, correct?
             // Necessary?
             dispatchMessage("Runtime.getIsolateId")
-            dispatchMessage("Debugger.setBlackboxPatterns","{\"params\":{\"patterns\":[]}}");
+            dispatchMessage("Debugger.setBlackboxPatterns","{\"params\":{\"patterns\":[]}}")
 
             dispatchMessage("Runtime.runIfWaitingForDebugger")
 //            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");

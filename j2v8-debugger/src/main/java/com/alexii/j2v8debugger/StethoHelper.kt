@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.eclipsesource.v8.V8
-import com.eclipsesource.v8.debug.DebugHandler
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.InspectorModulesProvider
 import com.facebook.stetho.Stetho
@@ -15,14 +14,12 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
-import com.facebook.stetho.inspector.protocol.module.Inspector as FacebookInspectorStub
 
 
 object StethoHelper {
     var debugger: Debugger? = null
         private set
 
-    private var v8DebuggerRef: WeakReference<DebugHandler>? = null
     private var v8InspectorRef: WeakReference<V8Inspector>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
 
@@ -67,7 +64,6 @@ object StethoHelper {
         for (defaultModule in defaultInspectorModules) {
             if (FacebookDebuggerStub::class != defaultModule::class
                 && FacebookRuntimeBase::class != defaultModule::class
-                && FacebookInspectorStub::class != defaultModule::class
                 ) {
                 inspectorModules.add(defaultModule)
             }
@@ -76,7 +72,6 @@ object StethoHelper {
         debugger = Debugger(scriptSourceProvider)
         inspectorModules.add(debugger!!)
         inspectorModules.add(Runtime(factory))
-        inspectorModules.add(Inspector())
 
         bindV8ToChromeDebuggerIfReady()
 
@@ -107,7 +102,6 @@ object StethoHelper {
     private fun bindV8ToChromeDebuggerIfReady() {
         val chromeDebuggerAttached = debugger != null
 
-//        val v8Debugger = v8DebuggerRef?.get()
         val v8Inspector = v8InspectorRef?.get()
         val v8Executor = v8ExecutorRef?.get()
 //        val v8DebuggerInitialized = v8Debugger != null && v8Executor != null
