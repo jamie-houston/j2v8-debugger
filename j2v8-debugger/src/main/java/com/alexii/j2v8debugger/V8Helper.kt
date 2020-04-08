@@ -82,7 +82,7 @@ object V8Helper {
                 if (responseMethod == "Debugger.scriptParsed"){
                     val params = message.getJSONObject("params")
                     if (params.optString("url").isNotEmpty()){
-                        scriptId = params.optString("scriptId")
+                        scriptId = params.optString("url")
                     }
                 }
 //                dispatchMessage(message.optString("method"), message.optString("params"))

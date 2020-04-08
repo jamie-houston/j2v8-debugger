@@ -174,7 +174,7 @@ class Debugger(
             try {
                 val request = dtoMapper.convertValue(params, GetScriptSourceRequest::class.java)
 
-                val scriptSource = scriptSourceProvider.getSource(request.scriptId!!)
+                val scriptSource = scriptSourceProvider.getSource("hello-world")
 
 //                val protocolMessage = JSONObject()
 //                protocolMessage.put("id", 100)
