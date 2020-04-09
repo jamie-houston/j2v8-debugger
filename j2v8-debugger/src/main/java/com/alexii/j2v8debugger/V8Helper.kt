@@ -98,8 +98,10 @@ object V8Helper {
                     networkPeerManager?.sendNotificationToPeers(responseMethod, response)
 
                 } else if (responseMethod == "Debugger.paused") {
+                    val updatedScript = params.toString().replace("\"$scriptId\"", "\"hellow-world\"")
                     val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                    networkPeerManager?.sendNotificationToPeers(responseMethod, params)
+                    Log.i("V8Helper", "*** debugger.paused $updatedScript")
+                    networkPeerManager?.sendNotificationToPeers(responseMethod, JSONObject(updatedScript))
                 }
 //                dispatchMessage(message.optString("method"), message.optString("params"))
 //                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
