@@ -69,7 +69,8 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun updateUserToRandom() {
-        val newUser = "user" + Random().nextInt(10)
+//        val newUser = "user" + Random().nextInt(10)
+        val newUser = UUID.randomUUID().toString()
         //following assumes, that some JS sources are different per user
         StethoHelper.scriptsPathPrefix = newUser
     }

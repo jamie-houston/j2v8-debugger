@@ -59,6 +59,8 @@ object V8Helper {
     }
 
     val debugV8InspectorDelegate = object: V8InspectorDelegate{
+        var initialBreak = true
+
         override fun waitFrontendMessageOnPause() {
             if (v8MessageQueue.any()) {
                 for ((k,v) in v8MessageQueue){
@@ -110,10 +112,10 @@ object V8Helper {
 
                     val location = params.getJSONObject("location")
                     location.put("scriptId", "hello-world")
-                    val response = JSONObject().put("breakpointId", params.getString("breakpointId").replace("hello-world", scriptIdToUrl("hello-world"))
-                    ).put("location", location)
-//                    val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
-//                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+//                    val response = JSONObject().put("breakpointId", params.getString("breakpointId").replace("hello-world", scriptIdToUrl("hello-world"))
+//                    ).put("location", location)
+                    val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
+                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                     Log.i("V8Helper", "*** breakpoint resolved with $response")
                     chromeMessageQueue[responseMethod] = response
 //                    networkPeerManager?.sendNotificationToPeers(responseMethod, response)

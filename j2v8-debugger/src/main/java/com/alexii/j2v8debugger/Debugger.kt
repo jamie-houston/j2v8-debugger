@@ -123,14 +123,16 @@ class Debugger(
     @ChromeDevtoolsMethod
     fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?) {
         Log.i("Debugger", "evaluateOnCallFrame: $params")
-        runStethoSafely {
-            v8Executor?.execute { V8Helper.dispatchMessage("Debugger.evaluateOnCallFrame", params.toString()) }
-        }
+        V8Helper.v8MessageQueue.put("Debugger.evaluateOnCallFrame", params ?: JSONObject())
+//        runStethoSafely {
+//            v8Executor?.execute { V8Helper.dispatchMessage("Debugger.evaluateOnCallFrame", params.toString()) }
+//        }
     }
 
     @ChromeDevtoolsMethod
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?){
         Log.i("Debugger", "setSkipAllPauses: $params")
+        V8Helper.v8MessageQueue.put("Debugger.setSkipAllPauses", params ?: JSONObject())
     }
 
     private fun onDisconnect() {
@@ -142,6 +144,9 @@ class Debugger(
             }
 //            v8ToChromeBreakHandler.resume()
             //xxx:  remove breakpoints instead of disabling them
+
+            // TODO: Remove all breakpoints
+//            V8Helper.dispatchMessage("Debugger.disableAllBreakpoints")
 //            v8Executor!!.execute { v8Debugger?.disableAllBreakPoints() }
 
 //            v8Executor!!.execute { v8Inspector?.removeDebuggerConnectionListener(object: DebuggerConnectionListener{
@@ -264,7 +269,7 @@ class Debugger(
 
 //                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 
-                SetBreakpointByUrlResponse("1:${request.lineNumber}:${request.columnNumber}:${request.url}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
+                SetBreakpointByUrlResponse("1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
             responseFuture.get()
