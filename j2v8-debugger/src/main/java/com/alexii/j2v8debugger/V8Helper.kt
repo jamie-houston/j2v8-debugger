@@ -30,9 +30,6 @@ object V8Helper {
      * Enables V8 debugging. All new runtimes will be created with debugging enabled.
      *
      * Must be enabled before the v8 runtime is created.
-     *
-     * @see com.eclipsesource.v8.debug.V8DebugServer.configureV8ForDebugging
-     * @see com.eclipsesource.v8.debug.DebugHandler
      */
     private fun enableDebugging() {
         V8.setFlags("-expose-debug-as=$DEBUG_OBJECT_NAME")
@@ -59,12 +56,10 @@ object V8Helper {
     }
 
     val debugV8InspectorDelegate = object: V8InspectorDelegate{
-        var initialBreak = true
-
         override fun waitFrontendMessageOnPause() {
             if (v8MessageQueue.any()) {
                 for ((k,v) in v8MessageQueue){
-                    Log.i("V8Helper", "*** sending chrome $k with $v")
+                    Log.i("V8Helper", "*** sending v8 $k with $v")
                     dispatchMessage(k, v.toString())
                 }
                 v8MessageQueue.clear()
@@ -72,22 +67,11 @@ object V8Helper {
             if (chromeMessageQueue.any()) {
                 val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                 for ((k,v) in chromeMessageQueue){
-                    Log.i("V8Helper", "*** sending $k with $v")
+                    Log.i("V8Helper", "*** sending chrome $k with $v")
                     networkPeerManager?.sendNotificationToPeers(k, v)
                 }
                 chromeMessageQueue.clear()
             }
-//            if (initialBreak){
-//                dispatchMessage("Debugger.resume")
-//                initialBreak = false
-//            }
-//            Log.i("V8Helper", "*** waitFrontendMessageOnPause")
-
-            // resume Debugger
-//            v8Inspector?.dispatchProtocolMessage("{\"id\":9,\"method\":\"Runtime.runIfWaitingForDebugger\"}")
-//            dispatchMessage("Debugger.resume")
-//            dispatchMessage("Debugger.stepOver")
-//            v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
         }
 
         override fun onResponse(p0: String?) {
@@ -101,48 +85,23 @@ object V8Helper {
                 // This is an event
                 val responseMethod = message.optString("method")
                 if (responseMethod == "Debugger.scriptParsed") {
-//                    dispatchMessage("Debugger.getPossibleBreakpoints", "{\"start\": {\"scriptId\": \"${params.optString("scriptId")}\", \"lineNumber\": 0, \"columnNumber\": 0}, \"end\": {\"scriptId\": \"${params.optString("scriptId")}\", \"lineNumber\": 10, \"columnNumber\": 0}}")
                     dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"${params.get("scriptId")}\"}")
                     if (params.optString("url").isNotEmpty()) {
                         scriptId = params.optString("scriptId")
-//                        dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"$scriptId\"}")
-//                        dispatchMessage("Debugger.getPossibleBreakpoints", "{\"start\": {\"scriptId\": \"$scriptId\", \"lineNumber\": 0, \"columnNumber\": 0}, \"end\": {\"scriptId\": \"$scriptId\", \"lineNumber\": 10, \"columnNumber\": 0}}")
                     }
                 } else if (responseMethod == "Debugger.breakpointResolved"){
 
                     val location = params.getJSONObject("location")
                     location.put("scriptId", "hello-world")
-//                    val response = JSONObject().put("breakpointId", params.getString("breakpointId").replace("hello-world", scriptIdToUrl("hello-world"))
-//                    ).put("location", location)
                     val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
-                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                     Log.i("V8Helper", "*** breakpoint resolved with $response")
                     chromeMessageQueue[responseMethod] = response
-//                    networkPeerManager?.sendNotificationToPeers(responseMethod, response)
 
                 } else if (responseMethod == "Debugger.paused") {
                     val updatedScript = params.toString().replace("\"$scriptId\"", "\"hello-world\"")
-//                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                     Log.i("V8Helper", "*** debugger.paused $updatedScript")
-//                    networkPeerManager?.sendNotificationToPeers(responseMethod, JSONObject(updatedScript))
                     chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
                 }
-//                dispatchMessage(message.optString("method"), message.optString("params"))
-//                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
-//                }
-//                if (responseMethod == "Debugger.paused") {
-//                    var dtoMapper = ObjectMapper()
-//                val request = dtoMapper.convertValue(message.optJSONObject("params"), Debugger.PausedEvent::class.java)
-//                message.put("id", 200)
-//                v8Inspector?.dispatchProtocolMessage(message.toString())
-//                v8Inspector?.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Debugger.resume\"}")
-//                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-//                val pausedEvent = Debugger.PausedEvent(frames)
-
-//                logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
-
-//                networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
-//                }
             }
         }
     }
@@ -216,11 +175,6 @@ object V8Helper {
             dispatchMessage("Runtime.runIfWaitingForDebugger")
 
 //            dispatchMessage("Debugger.setBreakpointsActive", "{\"active\": false}")
-//            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
-
-//            runtime.schedulePauseOnNextStatement(inspector)
-
-//            StethoHelper.initializeWithV8Debugger(v8Debugger, v8Executor)
             StethoHelper.initializeWithV8Debugger(inspector, v8Executor)
 
             runtime
@@ -242,6 +196,6 @@ object V8Helper {
  */
 @JvmOverloads
 fun V8.releaseDebuggable(reportMemoryLeaks: Boolean = true) {
-    V8Helper.releaseV8Debugger()
+    releaseV8Debugger()
     this.release(reportMemoryLeaks)
 }
