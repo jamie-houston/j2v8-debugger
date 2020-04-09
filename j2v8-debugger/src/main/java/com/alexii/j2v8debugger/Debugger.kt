@@ -36,12 +36,12 @@ import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
 //users of the lib can change this value
-private val scriptsDomain = "http://app/"
-private val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
+val scriptsDomain = "http://app/"
+val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
 
 //move to separate mapper class if conversion logic become complicated and used in many places
-private fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
-private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)
+fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
+fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)
 
 /**
  * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
@@ -86,6 +86,7 @@ class Debugger(
 //        this.v8Debugger = v8Debugger
         this.v8Executor = v8Executor
         this.v8Inspector = v8Inspector
+
 
 //        v8Debugger.addBreakHandler(v8ToChromeBreakHandler)
     }
@@ -199,47 +200,29 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely {
-            v8Executor?.execute {
-                V8Helper.dispatchMessage("Debugger.resume")
-            }
-        }
+        V8Helper.v8MessageQueue.put("Debugger.resume", params ?: JSONObject())
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Executor?.execute {
-            V8Helper.dispatchMessage("Debugger.pause")
-        }
+        V8Helper.v8MessageQueue.put("Debugger.pause", params ?: JSONObject())
 
         //check what's needed here
     }
 
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely {
-            v8Executor?.execute {
-                V8Helper.dispatchMessage("Debugger.stepOver")
-            }
-        }
+        V8Helper.v8MessageQueue.put("Debugger.stepOver", params ?: JSONObject())
     }
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely {
-            v8Executor?.execute {
-                V8Helper.dispatchMessage("Debugger.stepInto")
-            }
-        }
+        V8Helper.v8MessageQueue.put("Debugger.stepInto", params ?: JSONObject())
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely {
-            v8Executor?.execute {
-                V8Helper.dispatchMessage("Debugger.stepOut")
-            }
-        }
+        V8Helper.v8MessageQueue.put("Debugger.stepOut", params ?: JSONObject())
     }
 
     @ChromeDevtoolsMethod
@@ -272,6 +255,7 @@ class Debugger(
 //                Log.i("Debugger", "setBreakpoint: outgoing ${protocolMessage.toString()}")
 
                 val breakpointParams = JSONObject().put("lineNumber", request.lineNumber).put("url", "hello-world").put("columnNumber", request.columnNumber)
+//                V8Helper.responseQueue.put("Debugger.setBreakpointByUrl", breakpointParams)
                 V8Helper.dispatchMessage("Debugger.setBreakpointByUrl", breakpointParams.toString())
 //                val breakpointParams = JSONObject().put("location", JSONObject().put("scriptId", "10").put("lineNumber", request.lineNumber).put("columnNumber", request.columnNumber))
 //                V8Helper.dispatchMessage("Debugger.setBreakpoint", breakpointParams.toString())

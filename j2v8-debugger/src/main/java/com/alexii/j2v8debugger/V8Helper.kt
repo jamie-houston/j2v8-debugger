@@ -23,6 +23,9 @@ object V8Helper {
     private var v8Inspector: V8Inspector? = null
     val nextDispatchId = AtomicInteger(0)
 
+    val chromeMessageQueue = mutableMapOf<String, JSONObject>()
+    val v8MessageQueue = mutableMapOf<String, JSONObject>()
+
     /**
      * Enables V8 debugging. All new runtimes will be created with debugging enabled.
      *
@@ -55,8 +58,23 @@ object V8Helper {
         v8Inspector?.dispatchProtocolMessage(message)
     }
 
-    private val debugV8InspectorDelegate = object: V8InspectorDelegate{
+    val debugV8InspectorDelegate = object: V8InspectorDelegate{
         override fun waitFrontendMessageOnPause() {
+            if (v8MessageQueue.any()) {
+                for ((k,v) in v8MessageQueue){
+                    Log.i("V8Helper", "*** sending chrome $k with $v")
+                    dispatchMessage(k, v.toString())
+                }
+                v8MessageQueue.clear()
+            }
+            if (chromeMessageQueue.any()) {
+                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                for ((k,v) in chromeMessageQueue){
+                    Log.i("V8Helper", "*** sending $k with $v")
+                    networkPeerManager?.sendNotificationToPeers(k, v)
+                }
+                chromeMessageQueue.clear()
+            }
 //            if (initialBreak){
 //                dispatchMessage("Debugger.resume")
 //                initialBreak = false
@@ -92,16 +110,20 @@ object V8Helper {
 
                     val location = params.getJSONObject("location")
                     location.put("scriptId", "hello-world")
-                    val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
-                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                    val response = JSONObject().put("breakpointId", params.getString("breakpointId").replace("hello-world", scriptIdToUrl("hello-world"))
+                    ).put("location", location)
+//                    val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
+//                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                     Log.i("V8Helper", "*** breakpoint resolved with $response")
-                    networkPeerManager?.sendNotificationToPeers(responseMethod, response)
+                    chromeMessageQueue[responseMethod] = response
+//                    networkPeerManager?.sendNotificationToPeers(responseMethod, response)
 
                 } else if (responseMethod == "Debugger.paused") {
-                    val updatedScript = params.toString().replace("\"$scriptId\"", "\"hellow-world\"")
-                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                    val updatedScript = params.toString().replace("\"$scriptId\"", "\"hello-world\"")
+//                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                     Log.i("V8Helper", "*** debugger.paused $updatedScript")
-                    networkPeerManager?.sendNotificationToPeers(responseMethod, JSONObject(updatedScript))
+//                    networkPeerManager?.sendNotificationToPeers(responseMethod, JSONObject(updatedScript))
+                    chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
                 }
 //                dispatchMessage(message.optString("method"), message.optString("params"))
 //                if (responseMethod.isNotEmpty() && responseMethod != "Debugger.scriptParsed") {
@@ -149,7 +171,6 @@ object V8Helper {
                     + "Call V8Helper.enableV8Debugging() before creation of V8 runtime!")
             }
 
-
             v8Inspector = V8Inspector.createV8Inspector(v8, debugV8InspectorDelegate, "test")
             v8Inspector?.addDebuggerConnectionListener(debuggerConnectionListener)
 
@@ -183,14 +204,16 @@ object V8Helper {
             // Default Chrome DevTool protocol messages
             dispatchMessage("Runtime.enable")
             dispatchMessage("Debugger.enable", "{\"maxScriptsCacheSize\":10000000}")
-            dispatchMessage("Debugger.setPauseOnExceptions", "{\"params\": {\"state\": \"none\"}}")
-            dispatchMessage("Debugger.setAsyncCallStackDepth", "{\"params\":{\"maxDepth\":32}}")
+            dispatchMessage("Debugger.setPauseOnExceptions", "{\"state\": \"none\"}")
+            dispatchMessage("Debugger.setAsyncCallStackDepth", "{\"maxDepth\":32}")
             // Target Doamin?  V8 S/B only target, correct?
             // Necessary?
             dispatchMessage("Runtime.getIsolateId")
-            dispatchMessage("Debugger.setBlackboxPatterns","{\"params\":{\"patterns\":[]}}")
+            dispatchMessage("Debugger.setBlackboxPatterns","{\"patterns\":[]}")
 
             dispatchMessage("Runtime.runIfWaitingForDebugger")
+
+//            dispatchMessage("Debugger.setBreakpointsActive", "{\"active\": false}")
 //            inspector.dispatchProtocolMessage("{\"id\":${dispatchId.incrementAndGet()},\"method\":\"Runtime.runIfWaitingForDebugger\"}");
 
 //            runtime.schedulePauseOnNextStatement(inspector)
