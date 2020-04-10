@@ -32,16 +32,16 @@ class ExampleActivity : AppCompatActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val scriptName = "hello-world"
         AndroidInjection.inject(this)
         updateUserToRandom()
-        v8Future = initDebuggableV8()
+        v8Future = initDebuggableV8(scriptName)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_example)
         setSupportActionBar(toolbar)
 
         fab.setOnClickListener { view ->
-            val scriptName = "hello-world"
             val jsScript = simpleScriptProvider.getSource(scriptName)
 
             v8Executor.submit {
@@ -54,8 +54,8 @@ class ExampleActivity : AppCompatActivity() {
         }
     }
 
-    private fun initDebuggableV8(): Future<V8> {
-        return V8Helper.createDebuggableV8Runtime(v8Executor)
+    private fun initDebuggableV8(scriptName: String): Future<V8> {
+        return V8Helper.createDebuggableV8Runtime(v8Executor, scriptName)
     }
 
     override fun onDestroy() {

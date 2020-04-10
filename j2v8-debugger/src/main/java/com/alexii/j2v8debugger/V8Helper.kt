@@ -23,6 +23,7 @@ object V8Helper {
     private var v8Inspector: V8Inspector? = null
     private val nextDispatchId = AtomicInteger(0)
     var v8ScriptId: String? = null
+    lateinit var chromeScriptName: String
 
     val chromeMessageQueue = mutableMapOf<String, JSONObject>()
     val v8MessageQueue = mutableMapOf<String, JSONObject?>()
@@ -107,13 +108,13 @@ object V8Helper {
                 } else if (responseMethod == Protocol.Debugger.BreakpointResolved) {
                     val location = responseParams.getJSONObject("location")
                     // TODO: ScriptId should not be hardcoded
-                    location.put("scriptId", "hello-world")
+                    location.put("scriptId", chromeScriptName)
                     val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
                     chromeMessageQueue[responseMethod] = response
                 } else if (responseMethod == Protocol.Debugger.Paused) {
                     // TODO: ScriptId should not be hardcoded
                     // Also this replace could inadvertantly replace other strings in the params that match
-                    val updatedScript = responseParams.toString().replace("\"$v8ScriptId\"", "\"hello-world\"")
+                    val updatedScript = responseParams.toString().replace("\"$v8ScriptId\"", "\"$chromeScriptName\"")
                     chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
                 }
             }
@@ -164,7 +165,8 @@ object V8Helper {
      * NOTE: Should be declared as V8 class extensions when will be allowed (https://youtrack.jetbrains.com/issue/KT-11968)
      */
     @JvmStatic
-    fun createDebuggableV8Runtime(v8Executor: ExecutorService): Future<V8> {
+    fun createDebuggableV8Runtime(v8Executor: ExecutorService, scriptName: String): Future<V8> {
+        chromeScriptName = scriptName
         enableDebugging()
 
         return v8Executor.submit(Callable {
