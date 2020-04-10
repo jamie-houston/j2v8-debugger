@@ -16,16 +16,16 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicInteger
 
-typealias MessageCallback = (JSONObject) -> Unit
 /**
  * Debug-related utility functionality for [V8]
  */
 object V8Helper {
     private var v8Inspector: V8Inspector? = null
-    val nextDispatchId = AtomicInteger(0)
+    private val nextDispatchId = AtomicInteger(0)
+    var v8ScriptId: String? = null
 
     val chromeMessageQueue = mutableMapOf<String, JSONObject>()
-    val v8MessageQueue = mutableMapOf<String, JSONObject>()
+    val v8MessageQueue = mutableMapOf<String, JSONObject?>()
 
     /**
      * Enables V8 debugging. All new runtimes will be created with debugging enabled.
@@ -41,7 +41,7 @@ object V8Helper {
      *
      * The condition is necessary, but not sufficient: v8 might be created before flags are set.
      */
-    private val isDebuggingEnabled : Boolean
+    private val isDebuggingEnabled: Boolean
         get() {
             val v8FlagsField: Field = V8::class.java.getDeclaredField("v8Flags")
             v8FlagsField.isAccessible = true
@@ -50,9 +50,9 @@ object V8Helper {
             return v8FlagsValue != null && v8FlagsValue.contains(DEBUG_OBJECT_NAME)
         }
 
-    fun dispatchMessage(method: String, params: String? = null){
-        val message = "{\"id\":${nextDispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": $params}"
-        if (messageQueue.containsKey(method)){
+    fun dispatchMessage(method: String, params: String? = null) {
+        val message = "{\"id\":${nextDispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": ${params ?: "{}"}}"
+        if (messageQueue.containsKey(method)) {
             tempId = nextDispatchId.get()
         }
         Log.i("V8Helper", "dispatching $message")
@@ -63,7 +63,7 @@ object V8Helper {
 
     var tempId: Int = 0
 
-    val debugV8InspectorDelegate = object: V8InspectorDelegate {
+    private val debugV8InspectorDelegate = object : V8InspectorDelegate {
         override fun waitFrontendMessageOnPause() {
             if (v8MessageQueue.any()) {
                 for ((k, v) in v8MessageQueue) {
@@ -87,46 +87,37 @@ object V8Helper {
             inspectorResponse = p0
             val message = JSONObject(p0)
             if (message.has("id")) {
+                // This is a command response
                 if (tempId == message.getInt("id")) {
                     messageQueue[messageQueue.keys.first()] = message.optJSONObject("result")?.optString("result")
                 }
-                // This is a command response
             } else if (message.has("method")) {
-                val params = message.optJSONObject("params")
                 // This is an event
+                val responseParams = message.optJSONObject("params")
                 val responseMethod = message.optString("method")
-                if (responseMethod == "Debugger.scriptParsed") {
-                    dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"${params.get("scriptId")}\"}")
-                    if (params.optString("url").isNotEmpty()) {
-                        scriptId = params.optString("scriptId")
+                if (responseMethod == Protocol.Debugger.ScriptParsed) {
+//                    dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"${responseParams.get("scriptId")}\"}")
+                    if (responseParams.optString("url").isNotEmpty()) {
+                        // Get the V8 Script ID to map to the Chrome ScipeId
+                        v8ScriptId = responseParams.optString("scriptId")
                     }
-                } else if (responseMethod == "Debugger.breakpointResolved") {
-
-                    val location = params.getJSONObject("location")
+                } else if (responseMethod == Protocol.Debugger.BreakpointResolved) {
+                    val location = responseParams.getJSONObject("location")
+                    // TODO: ScriptId should not be hardcoded
                     location.put("scriptId", "hello-world")
-                    val response = JSONObject().put("breakpointId", params.getString("breakpointId")).put("location", location)
-                    Log.i("V8Helper", "*** breakpoint resolved with $response")
+                    val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
                     chromeMessageQueue[responseMethod] = response
-
-                } else if (responseMethod == "Debugger.paused") {
-//                    if (params.getJSONArray("hitBreakpoints").length() > 0) {
-                    val updatedScript = params.toString().replace("\"$scriptId\"", "\"hello-world\"")
-//                            .replace("\"url\":\"hello-world\"", "\"url\": \"${scriptIdToUrl("hello-world")}\"")
-
-                    Log.i("V8Helper", "*** debugger.paused $updatedScript")
+                } else if (responseMethod == Protocol.Debugger.Paused) {
+                    // TODO: ScriptId should not be hardcoded
+                    // Also this replace could inadvertantly replace other strings in the params that match
+                    val updatedScript = responseParams.toString().replace("\"$v8ScriptId\"", "\"hello-world\"")
                     chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
-//                    } else {
-//                        v8MessageQueue["Debugger.resume"] = JSONObject()
-//                    }
-//                    chromeMessageQueue[responseMethod] = params
                 }
             }
         }
     }
 
-    var scriptId: String? = null
-
-    private val debuggerConnectionListener = object: DebuggerConnectionListener{
+    private val debuggerConnectionListener = object : DebuggerConnectionListener {
         override fun onDebuggerDisconnected() {
             Log.i("V8Helper", "*** onDebuggerDisconnected")
         }
@@ -142,8 +133,7 @@ object V8Helper {
      * @return new or existing v8 debugger object.
      * Must be released before [V8.release] is called.
      */
-//    fun getOrCreateV8Debugger(v8: V8): DebugHandler {
-    fun getOrCreateV8Debugger(v8: V8) : V8Inspector {
+    private fun getOrCreateV8Debugger(v8: V8): V8Inspector {
         if (v8Inspector == null) {
             if (!isDebuggingEnabled) {
                 throw IllegalStateException("V8 Debugging is not enabled. "
@@ -167,7 +157,7 @@ object V8Helper {
      * Creates V8 runtime, v8 debugger and binds it to Stetho.
      * For releasing resources [releaseDebuggable] should be used.
      *
-     * @param v8Executor sigle-thread executor where v8 will be created
+     * @param v8Executor single-thread executor where v8 will be created
      *  and all debug calls will be performed by Stetho later.
      *
      * NOTE: Should be declared as V8 class extensions when will be allowed (https://youtrack.jetbrains.com/issue/KT-11968)
@@ -176,44 +166,34 @@ object V8Helper {
     fun createDebuggableV8Runtime(v8Executor: ExecutorService): Future<V8> {
         enableDebugging()
 
-        val v8Future: Future<V8> = v8Executor.submit(Callable {
+        return v8Executor.submit(Callable {
             val runtime = V8.createV8Runtime()
             val inspector = getOrCreateV8Debugger(runtime)
 
             // Default Chrome DevTool protocol messages
-            dispatchMessage("Runtime.enable")
-            dispatchMessage("Debugger.enable", "{\"maxScriptsCacheSize\":10000000}")
-            dispatchMessage("Debugger.setPauseOnExceptions", "{\"state\": \"none\"}")
-            dispatchMessage("Debugger.setAsyncCallStackDepth", "{\"maxDepth\":32}")
-            // Target Doamin?  V8 S/B only target, correct?
-            // Necessary?
-            dispatchMessage("Runtime.getIsolateId")
-            dispatchMessage("Debugger.setBlackboxPatterns","{\"patterns\":[]}")
+            dispatchMessage(Protocol.Runtime.Enable)
+            dispatchMessage(Protocol.Debugger.Enable, "{\"maxScriptsCacheSize\":10000000}")
+            dispatchMessage(Protocol.Debugger.SetPauseOnExceptions, "{\"state\": \"none\"}")
+            dispatchMessage(Protocol.Debugger.SetAsyncCallStackDepth, "{\"maxDepth\":32}")
 
-            dispatchMessage("Runtime.runIfWaitingForDebugger")
+            dispatchMessage(Protocol.Runtime.RunIfWaitingForDebugger)
 
-//            dispatchMessage("Debugger.setBreakpointsActive", "{\"active\": false}")
             StethoHelper.initializeWithV8Debugger(inspector, v8Executor)
 
             runtime
         })
-
-        return v8Future;
     }
 
     suspend fun getV8Result(method: String, params: JSONObject?): String? {
-        messageQueue.put(method, null)
+        messageQueue[method] = null
 
-        v8MessageQueue.put(method, params
-            ?: JSONObject())
+        v8MessageQueue[method] = params ?: JSONObject()
         while (messageQueue[method].isNullOrEmpty()) {
             delay(50L)
         }
         return messageQueue.remove(method)
     }
-
 }
-
 
 /**
  * Releases V8 and V8 debugger if any was created.

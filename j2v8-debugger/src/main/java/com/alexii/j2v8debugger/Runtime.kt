@@ -24,8 +24,6 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
 
-    var dtoMapper: ObjectMapper = ObjectMapper()
-
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
 
@@ -38,18 +36,6 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
         val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
         return jsonResult as JsonRpcResult
     }
-//        /**
-//         * hack needed to return local variables: Runtime.getProperties called after Debugger.paused.
-//         * https://github.com/facebook/stetho/issues/611
-//         * xxx: check if it should be conditional for requested related to Debugger only
-//         */
-//
-//        params?.put("ownProperties", true)
-//
-//        val result = adaptee.getProperties(peer, params)
-//
-//        return result
-//    }
 
     @ChromeDevtoolsMethod
     fun releaseObject(peer: JsonRpcPeer?, params: JSONObject?) = adaptee.releaseObject(peer, params)
