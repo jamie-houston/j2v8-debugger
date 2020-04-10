@@ -177,7 +177,7 @@ class Debugger(
     fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
         //Looks like this method should not be called at all.
         val action: () -> JsonRpcResult? = {
-            throw IllegalArgumentException("Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
+            throw IllegalArgumentException("Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: $params")
         }
         return runStethoSafely(action)
     }

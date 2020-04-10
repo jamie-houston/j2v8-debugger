@@ -11,6 +11,7 @@ import com.facebook.stetho.inspector.network.NetworkPeerManager
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.lang.reflect.Field
+import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -51,15 +52,28 @@ object V8Helper {
         }
 
     fun dispatchMessage(method: String, params: String? = null) {
-        val message = "{\"id\":${nextDispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": ${params ?: "{}"}}"
-        if (messageQueue.containsKey(method)) {
-            tempId = nextDispatchId.get()
+        val message = JSONObject()
+        val pendingMessage = messageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
+        if (pendingMessage != null){
+            pendingMessage.pending = true
+            message.put("id", pendingMessage.messageId)
+        } else {
+            message.put("id", nextDispatchId.incrementAndGet())
+        }
+        message.put("method", method)
+        if (!params.isNullOrBlank()){
+            message.put("params", params)
         }
         Log.i("V8Helper", "dispatching $message")
-        v8Inspector?.dispatchProtocolMessage(message)
+        v8Inspector?.dispatchProtocolMessage(message.toString())
     }
 
-    val messageQueue: MutableMap<String, String?> = mutableMapOf()
+    val messageQueue: MutableCollection<PendingResponse> = mutableListOf()
+
+    data class PendingResponse(val method: String, var messageId: Int = nextDispatchId.incrementAndGet()){
+        var response: String? = null
+        var pending = false
+    }
 
     var tempId: Int = 0
 
@@ -88,8 +102,9 @@ object V8Helper {
             val message = JSONObject(p0)
             if (message.has("id")) {
                 // This is a command response
-                if (tempId == message.getInt("id")) {
-                    messageQueue[messageQueue.keys.first()] = message.optJSONObject("result")?.optString("result")
+                val pendingMessage = messageQueue.firstOrNull{ msg -> msg.pending && msg.messageId == message.getInt("id")}
+                if (pendingMessage != null) {
+                    pendingMessage.response = message.optJSONObject("result")?.optString("result")
                 }
             } else if (message.has("method")) {
                 // This is an event
@@ -185,13 +200,15 @@ object V8Helper {
     }
 
     suspend fun getV8Result(method: String, params: JSONObject?): String? {
-        messageQueue[method] = null
+        val pendingMessage = PendingResponse(method)
+        messageQueue.add(pendingMessage)
 
         v8MessageQueue[method] = params ?: JSONObject()
-        while (messageQueue[method].isNullOrEmpty()) {
+        while (pendingMessage.response.isNullOrBlank()) {
             delay(50L)
         }
-        return messageQueue.remove(method)
+        messageQueue.remove(pendingMessage)
+        return pendingMessage.response
     }
 }
 
