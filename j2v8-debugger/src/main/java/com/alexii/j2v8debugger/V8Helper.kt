@@ -11,7 +11,6 @@ import com.facebook.stetho.inspector.network.NetworkPeerManager
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.lang.reflect.Field
-import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -52,20 +51,17 @@ object V8Helper {
         }
 
     fun dispatchMessage(method: String, params: String? = null) {
-        val message = JSONObject()
+        var messageId = 0
         val pendingMessage = messageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
         if (pendingMessage != null){
             pendingMessage.pending = true
-            message.put("id", pendingMessage.messageId)
+            messageId = pendingMessage.messageId
         } else {
-            message.put("id", nextDispatchId.incrementAndGet())
+            messageId = nextDispatchId.incrementAndGet()
         }
-        message.put("method", method)
-        if (!params.isNullOrBlank()){
-            message.put("params", params)
-        }
+        val message = "{\"id\":$messageId,\"method\":\"$method\", \"params\": ${params ?: "{}"}}"
         Log.i("V8Helper", "dispatching $message")
-        v8Inspector?.dispatchProtocolMessage(message.toString())
+        v8Inspector?.dispatchProtocolMessage(message)
     }
 
     val messageQueue: MutableCollection<PendingResponse> = mutableListOf()
