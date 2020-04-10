@@ -51,14 +51,21 @@ object V8Helper {
 
     fun dispatchMessage(method: String, params: String? = null){
         val message = "{\"id\":${nextDispatchId.incrementAndGet()},\"method\":\"$method\", \"params\": $params}"
+        if (messageQueue.containsKey(method)){
+            tempId = nextDispatchId.get()
+        }
         Log.i("V8Helper", "dispatching $message")
         v8Inspector?.dispatchProtocolMessage(message)
     }
 
-    val debugV8InspectorDelegate = object: V8InspectorDelegate{
+    val messageQueue: MutableMap<String, String?> = mutableMapOf()
+
+    var tempId: Int = 0
+
+    val debugV8InspectorDelegate = object: V8InspectorDelegate {
         override fun waitFrontendMessageOnPause() {
             if (v8MessageQueue.any()) {
-                for ((k,v) in v8MessageQueue){
+                for ((k, v) in v8MessageQueue) {
                     Log.i("V8Helper", "*** sending v8 $k with $v")
                     dispatchMessage(k, v.toString())
                 }
@@ -66,7 +73,7 @@ object V8Helper {
             }
             if (chromeMessageQueue.any()) {
                 val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                for ((k,v) in chromeMessageQueue){
+                for ((k, v) in chromeMessageQueue) {
                     Log.i("V8Helper", "*** sending chrome $k with $v")
                     networkPeerManager?.sendNotificationToPeers(k, v)
                 }
@@ -79,6 +86,9 @@ object V8Helper {
             inspectorResponse = p0
             val message = JSONObject(p0)
             if (message.has("id")) {
+                if (tempId == message.getInt("id")) {
+                    messageQueue[messageQueue.keys.first()] = message.optJSONObject("result")?.optString("result")
+                }
                 // This is a command response
             } else if (message.has("method")) {
                 val params = message.optJSONObject("params")
@@ -89,7 +99,7 @@ object V8Helper {
                     if (params.optString("url").isNotEmpty()) {
                         scriptId = params.optString("scriptId")
                     }
-                } else if (responseMethod == "Debugger.breakpointResolved"){
+                } else if (responseMethod == "Debugger.breakpointResolved") {
 
                     val location = params.getJSONObject("location")
                     location.put("scriptId", "hello-world")
@@ -98,9 +108,16 @@ object V8Helper {
                     chromeMessageQueue[responseMethod] = response
 
                 } else if (responseMethod == "Debugger.paused") {
+//                    if (params.getJSONArray("hitBreakpoints").length() > 0) {
                     val updatedScript = params.toString().replace("\"$scriptId\"", "\"hello-world\"")
+//                            .replace("\"url\":\"hello-world\"", "\"url\": \"${scriptIdToUrl("hello-world")}\"")
+
                     Log.i("V8Helper", "*** debugger.paused $updatedScript")
                     chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
+//                    } else {
+//                        v8MessageQueue["Debugger.resume"] = JSONObject()
+//                    }
+//                    chromeMessageQueue[responseMethod] = params
                 }
             }
         }

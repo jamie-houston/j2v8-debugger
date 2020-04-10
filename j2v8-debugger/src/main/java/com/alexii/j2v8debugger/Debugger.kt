@@ -28,6 +28,13 @@ import com.facebook.stetho.inspector.protocol.module.Runtime.RemoteObject
 import com.facebook.stetho.json.ObjectMapper
 import com.facebook.stetho.json.annotation.JsonProperty
 import com.facebook.stetho.websocket.CloseCodes
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.DisposableHandle
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.util.*
 import java.util.concurrent.Callable
@@ -109,15 +116,34 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?) {
-        Log.i("Debugger", "evaluateOnCallFrame: $params")
-        V8Helper.v8MessageQueue.put("Debugger.evaluateOnCallFrame", params ?: JSONObject())
+    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?) : JsonRpcResult? {
+        val method = "Debugger.evaluateOnCallFrame"
+
+        var result: String? = null
+        runBlocking {
+            result = getV8Result(method, params)
+        }
+        return EvaluateOnCallFrameResult(JSONObject(result))
+//        Log.i("Debugger", "evaluateOnCallFrame: $params")
+    }
+
+    suspend fun getV8Result(method: String, params: JSONObject?): String? {
+        V8Helper.messageQueue.put(method, null)
+
+        V8Helper.v8MessageQueue.put(method, params
+            ?: JSONObject())
+        while (V8Helper.messageQueue[method].isNullOrEmpty()) {
+            delay(500L)
+        }
+        return V8Helper.messageQueue.remove(method)
     }
 
     @ChromeDevtoolsMethod
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?){
         Log.i("Debugger", "setSkipAllPauses: $params")
-        V8Helper.v8MessageQueue.put("Debugger.setSkipAllPauses", params ?: JSONObject())
+        // This was changed from skipped to skip
+        // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
+        V8Helper.v8MessageQueue.put("Debugger.setSkipAllPauses", JSONObject().put("skip", params?.optBoolean("skipped") ?: false))
     }
 
     private fun onDisconnect() {
@@ -279,6 +305,12 @@ class Debugger(
 //            throw IllegalStateException("Can't peform ${LogUtils.getChromeDevToolsMethodName()} while paused in debugger.")
 //        }
     }
+
+    class EvaluateOnCallFrameResult(
+        @field:JsonProperty
+        @JvmField
+        val result: JSONObject? = null
+    ): JsonRpcResult
 
     /**
      * Fired as the result of [Debugger.enable]
