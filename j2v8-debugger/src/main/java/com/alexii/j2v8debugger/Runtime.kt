@@ -7,8 +7,6 @@ import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.inspector.protocol.module.SimpleBooleanResult
-import com.facebook.stetho.json.ObjectMapper
-import com.facebook.stetho.json.annotation.JsonProperty
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -20,6 +18,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
  *  Otherwise setting breakpoint, etc. makes no effect.
  */
+@Suppress("unused")
 class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
@@ -56,7 +55,5 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun enable(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         return SimpleBooleanResult(true)
     }
-    class GetPropertiesResult(
-    ): JSONObject(), JsonRpcResult
 
 }

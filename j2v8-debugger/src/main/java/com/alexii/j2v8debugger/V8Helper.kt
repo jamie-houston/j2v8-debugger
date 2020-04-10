@@ -27,6 +27,8 @@ object V8Helper {
     val chromeMessageQueue = mutableMapOf<String, JSONObject>()
     val v8MessageQueue = mutableMapOf<String, JSONObject?>()
 
+    val pendingMessageQueue: MutableCollection<PendingResponse> = mutableListOf()
+
     /**
      * Enables V8 debugging. All new runtimes will be created with debugging enabled.
      *
@@ -51,8 +53,8 @@ object V8Helper {
         }
 
     fun dispatchMessage(method: String, params: String? = null) {
-        var messageId = 0
-        val pendingMessage = messageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
+        val messageId: Int
+        val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
         if (pendingMessage != null){
             pendingMessage.pending = true
             messageId = pendingMessage.messageId
@@ -64,14 +66,6 @@ object V8Helper {
         v8Inspector?.dispatchProtocolMessage(message)
     }
 
-    val messageQueue: MutableCollection<PendingResponse> = mutableListOf()
-
-    data class PendingResponse(val method: String, var messageId: Int = nextDispatchId.incrementAndGet()){
-        var response: String? = null
-        var pending = false
-    }
-
-    var tempId: Int = 0
 
     private val debugV8InspectorDelegate = object : V8InspectorDelegate {
         override fun waitFrontendMessageOnPause() {
@@ -94,11 +88,10 @@ object V8Helper {
 
         override fun onResponse(p0: String?) {
             Log.i("V8Helper", "*** onResponse $p0")
-            inspectorResponse = p0
             val message = JSONObject(p0)
             if (message.has("id")) {
                 // This is a command response
-                val pendingMessage = messageQueue.firstOrNull{ msg -> msg.pending && msg.messageId == message.getInt("id")}
+                val pendingMessage = pendingMessageQueue.firstOrNull{ msg -> msg.pending && msg.messageId == message.getInt("id")}
                 if (pendingMessage != null) {
                     pendingMessage.response = message.optJSONObject("result")?.optString("result")
                 }
@@ -107,7 +100,6 @@ object V8Helper {
                 val responseParams = message.optJSONObject("params")
                 val responseMethod = message.optString("method")
                 if (responseMethod == Protocol.Debugger.ScriptParsed) {
-//                    dispatchMessage("Debugger.getScriptSource", "{\"scriptId\": \"${responseParams.get("scriptId")}\"}")
                     if (responseParams.optString("url").isNotEmpty()) {
                         // Get the V8 Script ID to map to the Chrome ScipeId
                         v8ScriptId = responseParams.optString("scriptId")
@@ -137,8 +129,6 @@ object V8Helper {
             Log.i("V8Helper", "*** onDebuggerConnected")
         }
     }
-
-    private var inspectorResponse: String? = null
 
     /**
      * @return new or existing v8 debugger object.
@@ -197,14 +187,19 @@ object V8Helper {
 
     suspend fun getV8Result(method: String, params: JSONObject?): String? {
         val pendingMessage = PendingResponse(method)
-        messageQueue.add(pendingMessage)
+        pendingMessageQueue.add(pendingMessage)
 
         v8MessageQueue[method] = params ?: JSONObject()
         while (pendingMessage.response.isNullOrBlank()) {
             delay(50L)
         }
-        messageQueue.remove(pendingMessage)
+        pendingMessageQueue.remove(pendingMessage)
         return pendingMessage.response
+    }
+
+    data class PendingResponse(val method: String, var messageId: Int = nextDispatchId.incrementAndGet()){
+        var response: String? = null
+        var pending = false
     }
 }
 
