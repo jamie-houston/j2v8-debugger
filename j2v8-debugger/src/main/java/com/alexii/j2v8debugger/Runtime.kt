@@ -7,6 +7,10 @@ import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.inspector.protocol.module.SimpleBooleanResult
+import com.facebook.stetho.json.ObjectMapper
+import com.facebook.stetho.json.annotation.JsonProperty
+import kotlinx.coroutines.runBlocking
+import org.json.JSONArray
 import org.json.JSONObject
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
@@ -20,8 +24,21 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
 
+    var dtoMapper: ObjectMapper = ObjectMapper()
+
     @ChromeDevtoolsMethod
-    fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult = adaptee.getProperties(peer, params)
+    fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+
+        val method = "Runtime.getProperties"
+
+        var result: String? = null
+        runBlocking {
+            result = V8Helper.getV8Result(method, params)
+        }
+        val jsonResult = JSONObject().put("result", JSONArray(result))
+        val parsedObject = GetPropertiesResult(jsonResult)
+        return parsedObject
+    }
 //        /**
 //         * hack needed to return local variables: Runtime.getProperties called after Debugger.paused.
 //         * https://github.com/facebook/stetho/issues/611
@@ -54,4 +71,10 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun enable(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         return SimpleBooleanResult(true)
     }
+    class GetPropertiesResult(
+        @field:JsonProperty
+        @JvmField
+        val result: JSONObject
+    ): JsonRpcResult
+
 }

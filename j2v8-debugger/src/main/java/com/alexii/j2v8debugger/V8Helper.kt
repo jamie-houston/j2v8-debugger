@@ -8,6 +8,7 @@ import com.eclipsesource.v8.inspector.DebuggerConnectionListener
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.facebook.stetho.inspector.network.NetworkPeerManager
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.lang.reflect.Field
 import java.util.concurrent.Callable
@@ -198,6 +199,17 @@ object V8Helper {
         })
 
         return v8Future;
+    }
+
+    suspend fun getV8Result(method: String, params: JSONObject?): String? {
+        V8Helper.messageQueue.put(method, null)
+
+        V8Helper.v8MessageQueue.put(method, params
+            ?: JSONObject())
+        while (V8Helper.messageQueue[method].isNullOrEmpty()) {
+            delay(500L)
+        }
+        return V8Helper.messageQueue.remove(method)
     }
 
 }

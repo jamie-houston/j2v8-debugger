@@ -121,21 +121,10 @@ class Debugger(
 
         var result: String? = null
         runBlocking {
-            result = getV8Result(method, params)
+            result = V8Helper.getV8Result(method, params)
         }
         return EvaluateOnCallFrameResult(JSONObject(result))
 //        Log.i("Debugger", "evaluateOnCallFrame: $params")
-    }
-
-    suspend fun getV8Result(method: String, params: JSONObject?): String? {
-        V8Helper.messageQueue.put(method, null)
-
-        V8Helper.v8MessageQueue.put(method, params
-            ?: JSONObject())
-        while (V8Helper.messageQueue[method].isNullOrEmpty()) {
-            delay(500L)
-        }
-        return V8Helper.messageQueue.remove(method)
     }
 
     @ChromeDevtoolsMethod
