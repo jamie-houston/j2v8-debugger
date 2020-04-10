@@ -202,14 +202,14 @@ object V8Helper {
     }
 
     suspend fun getV8Result(method: String, params: JSONObject?): String? {
-        V8Helper.messageQueue.put(method, null)
+        messageQueue.put(method, null)
 
-        V8Helper.v8MessageQueue.put(method, params
+        v8MessageQueue.put(method, params
             ?: JSONObject())
-        while (V8Helper.messageQueue[method].isNullOrEmpty()) {
-            delay(500L)
+        while (messageQueue[method].isNullOrEmpty()) {
+            delay(50L)
         }
-        return V8Helper.messageQueue.remove(method)
+        return messageQueue.remove(method)
     }
 
 }

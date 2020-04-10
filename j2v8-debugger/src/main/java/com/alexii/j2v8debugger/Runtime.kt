@@ -35,9 +35,8 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
         runBlocking {
             result = V8Helper.getV8Result(method, params)
         }
-        val jsonResult = JSONObject().put("result", JSONArray(result))
-        val parsedObject = GetPropertiesResult(jsonResult)
-        return parsedObject
+        val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
+        return jsonResult as JsonRpcResult
     }
 //        /**
 //         * hack needed to return local variables: Runtime.getProperties called after Debugger.paused.
@@ -72,9 +71,6 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
         return SimpleBooleanResult(true)
     }
     class GetPropertiesResult(
-        @field:JsonProperty
-        @JvmField
-        val result: JSONObject
-    ): JsonRpcResult
+    ): JSONObject(), JsonRpcResult
 
 }
