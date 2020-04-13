@@ -9,7 +9,7 @@ apply plugin: 'kotlin-kapt'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "com.alexii.j2v8debugging"
+        applicationId "com.salesforce.j2v8debugging"
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 1
