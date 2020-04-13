@@ -18,7 +18,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
  *  Otherwise setting breakpoint, etc. makes no effect.
  */
-@Suppress("unused")
+@Suppress("UNUSED_PARAMETER", "unused")
 class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
@@ -26,7 +26,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
 
-        val method = "Runtime.getProperties"
+        val method = Protocol.Runtime.GetProperties
 
         var result: String? = null
         runBlocking {
