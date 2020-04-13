@@ -80,6 +80,7 @@ class Debugger(
 
             peer.registerDisconnectReceiver(::onDisconnect)
         }
+        V8Helper.debuggerConnected = true
     }
 
     @ChromeDevtoolsMethod
@@ -127,6 +128,7 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
+        V8Helper.debuggerConnected = false
         //xxx: figure-out why and when this method could be called
     }
 

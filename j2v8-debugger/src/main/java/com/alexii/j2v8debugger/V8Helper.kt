@@ -70,20 +70,24 @@ object V8Helper {
 
     private val debugV8InspectorDelegate = object : V8InspectorDelegate {
         override fun waitFrontendMessageOnPause() {
-            if (v8MessageQueue.any()) {
-                for ((k, v) in v8MessageQueue) {
-                    Log.i("V8Helper", "*** sending v8 $k with $v")
-                    dispatchMessage(k, v.toString())
+            if (!debuggerConnected){
+                dispatchMessage(Protocol.Debugger.Resume)
+            } else {
+                if (v8MessageQueue.any()) {
+                    for ((k, v) in v8MessageQueue) {
+                        Log.i("V8Helper", "*** sending v8 $k with $v")
+                        dispatchMessage(k, v.toString())
+                    }
+                    v8MessageQueue.clear()
                 }
-                v8MessageQueue.clear()
-            }
-            if (chromeMessageQueue.any()) {
-                val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                for ((k, v) in chromeMessageQueue) {
-                    Log.i("V8Helper", "*** sending chrome $k with $v")
-                    networkPeerManager?.sendNotificationToPeers(k, v)
+                if (chromeMessageQueue.any()) {
+                    val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
+                    for ((k, v) in chromeMessageQueue) {
+                        Log.i("V8Helper", "*** sending chrome $k with $v")
+                        networkPeerManager?.sendNotificationToPeers(k, v)
+                    }
+                    chromeMessageQueue.clear()
                 }
-                chromeMessageQueue.clear()
             }
         }
 
@@ -120,6 +124,8 @@ object V8Helper {
             }
         }
     }
+
+    var debuggerConnected = false
 
     private val debuggerConnectionListener = object : DebuggerConnectionListener {
         override fun onDebuggerDisconnected() {
