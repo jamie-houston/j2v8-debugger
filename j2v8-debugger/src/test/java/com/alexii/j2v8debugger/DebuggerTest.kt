@@ -49,7 +49,7 @@ class DebuggerTest {
 //        verify{ v8DebugHandlerMock.addDebuggerConnectionListener(any())}
 
 
-        val requestStub = Debugger.SetBreakpointByUrlRequest()
+        val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
         requestStub.lineNumber = 0;
         requestStub.columnNumber = 0
@@ -67,8 +67,8 @@ class DebuggerTest {
 //        verify(v8DebugHandlerMock).setScriptBreakpoint(eq(requestStub.scriptId), eq(requestStub.lineNumber!!))
 //        verifyNoMoreInteractions(v8DebugHandlerMock)
 
-        assertTrue(response is Debugger.SetBreakpointByUrlResponse)
-        val responseLocation: Debugger.Location = (response as Debugger.SetBreakpointByUrlResponse).locations[0]
+        assertTrue(response is SetBreakpointByUrlResponse)
+        val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
 
         assertEquals(requestStub.scriptId, responseLocation.scriptId)
         val lineNumber = requestStub.lineNumber
@@ -83,7 +83,7 @@ class DebuggerTest {
         val debugger = Debugger(scriptSourceProviderMock)
 
 
-        val requestMock = mockk<Debugger.SetBreakpointByUrlRequest>()
+        val requestMock = mockk<SetBreakpointByUrlRequest>()
         val jsonParamsMock = mockk<JSONObject>()
         val mapperMock = mockk<ObjectMapper> {
             every { convertValue(eq(jsonParamsMock), eq(requestMock::class.java)) } returns requestMock

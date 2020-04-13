@@ -23,7 +23,7 @@ object Protocol {
     object Runtime{
         private val domain = "Runtime"
         val Enable = "$domain.enable"
+        val GetProperties = "$domain.getProperties"
         val RunIfWaitingForDebugger = "$domain.runIfWaitingForDebugger"
-
     }
 }

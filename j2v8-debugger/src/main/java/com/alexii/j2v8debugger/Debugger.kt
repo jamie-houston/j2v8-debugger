@@ -1,3 +1,4 @@
+
 package com.alexii.j2v8debugger
 
 import androidx.annotation.VisibleForTesting
@@ -29,8 +30,7 @@ fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)
  * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
  *  Otherwise setting breakpoint, etc. makes no effect.
  *  Above is also true for the case when debugger is paused due to pause/resume implementation as thread suspension.
- */
-@Suppress("unused")
+ */ @Suppress("UNUSED_PARAMETER", "unused")
 class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
 ) : FacebookDebuggerStub() {
