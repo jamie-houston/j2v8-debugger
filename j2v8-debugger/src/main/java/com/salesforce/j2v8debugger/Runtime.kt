@@ -55,5 +55,4 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun enable(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         return SimpleBooleanResult(true)
     }
-
 }
