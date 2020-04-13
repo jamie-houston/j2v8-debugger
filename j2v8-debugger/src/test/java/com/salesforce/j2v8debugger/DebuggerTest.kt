@@ -26,7 +26,7 @@ class DebuggerTest {
     @Test
     fun `on enable all scripts retrieved`() {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
-        val debugger = Debugger(scriptSourceProviderMock)
+        val debugger = Debugger(scriptSourceProviderMock, mockk(relaxed = true))
 
         debugger.enable(mockk(relaxed = true), null)
 
@@ -43,11 +43,8 @@ class DebuggerTest {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
-        val debugger = Debugger(scriptSourceProviderMock)
+        val debugger = Debugger(scriptSourceProviderMock, mockk())
         debugger.initialize(v8InspectorMock, directExecutor)
-
-//        verify{ v8DebugHandlerMock.addDebuggerConnectionListener(any())}
-
 
         val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
@@ -80,7 +77,7 @@ class DebuggerTest {
     @Test
     fun `No exceptions thrown when V8 not initialized`() {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> {}
-        val debugger = Debugger(scriptSourceProviderMock)
+        val debugger = Debugger(scriptSourceProviderMock, mockk())
 
 
         val requestMock = mockk<SetBreakpointByUrlRequest>()

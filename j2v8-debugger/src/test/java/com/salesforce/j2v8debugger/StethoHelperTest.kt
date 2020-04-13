@@ -29,7 +29,7 @@ class StethoHelperTest {
             contextMock.applicationContext
         } returns contextMock
 
-        val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
+        val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock, mockk())
 
         assertTrue(domains.any { it.javaClass == Debugger::class.java }, "No Debugger present")
         assertFalse(domains.any { it.javaClass == FacebookDebuggerStub::class.java }, "Stetho Debugger present")
@@ -41,7 +41,7 @@ class StethoHelperTest {
         val contextMock = mockk<Application> {}
         every { contextMock.applicationContext } returns contextMock
 
-        val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
+        val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock, mockk())
 
         assertTrue(domains.any { it.javaClass == Runtime::class.java }, "No Debugger present")
         assertFalse(domains.any { it.javaClass == FacebookRuntimeBase::class.java }, "Stetho Debugger present")
@@ -52,7 +52,7 @@ class StethoHelperTest {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> {}
         val contextMock = mockk<Application> {}
         every { contextMock.applicationContext } returns contextMock
-        StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
+        StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock, mockk())
 
         val v8InspectorMock = mockk<V8Inspector>()
         val v8ExecutorServiceMock = mockk<ExecutorService> {
@@ -79,7 +79,7 @@ class StethoHelperTest {
         val contextMock = mockk<Application> {}
         every { contextMock.applicationContext } returns contextMock
 
-        StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
+        StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock, mockk())
 
         verify(exactly = 1) { v8ExecutorServiceMock.execute(any()) }
         assertTrue(StethoHelper.isStethoAndV8DebuggerFullyInitialized)

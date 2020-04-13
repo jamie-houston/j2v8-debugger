@@ -40,23 +40,40 @@ object StethoHelper {
      * @return Similar to [Stetho.defaultInspectorModulesProvider] but contains [Debugger] for [V8]
      */
     @JvmStatic
-    fun defaultInspectorModulesProvider(context: Context, scriptSourceProvider: ScriptSourceProvider): InspectorModulesProvider {
-        return InspectorModulesProvider { getInspectorModules(context, scriptSourceProvider) }
+    fun defaultInspectorModulesProvider(
+        context: Context,
+        scriptSourceProvider: ScriptSourceProvider,
+        v8Debugger: V8Debugger
+    ): InspectorModulesProvider {
+        return InspectorModulesProvider { getInspectorModules(context, scriptSourceProvider, v8Debugger) }
     }
 
     @JvmOverloads
-    fun getInspectorModules(context: Context, scriptSourceProvider: ScriptSourceProvider, factory: RuntimeReplFactory? = null): Iterable<ChromeDevtoolsDomain> {
+    fun getInspectorModules(
+        context: Context,
+        scriptSourceProvider: ScriptSourceProvider,
+        v8Debugger: V8Debugger,
+        factory: RuntimeReplFactory? = null
+    ): Iterable<ChromeDevtoolsDomain> {
         return try {
-            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, factory)
+            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, v8Debugger, factory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
-            Log.e(Debugger.TAG, "Unable to init Stetho with V8 Debugger. Default set-up will be used", e)
+            Log.e(
+                Debugger.TAG,
+                "Unable to init Stetho with V8 Debugger. Default set-up will be used",
+                e
+            )
 
             getDefaultInspectorModules(context, factory)
         }
     }
 
-    @VisibleForTesting
-    fun getDefaultInspectorModulesWithDebugger(context: Context, scriptSourceProvider: ScriptSourceProvider, factory: RuntimeReplFactory? = null): Iterable<ChromeDevtoolsDomain> {
+    fun getDefaultInspectorModulesWithDebugger(
+        context: Context,
+        scriptSourceProvider: ScriptSourceProvider,
+        v8Debugger: V8Debugger,
+        factory: RuntimeReplFactory? = null
+    ): Iterable<ChromeDevtoolsDomain> {
         val defaultInspectorModules = getDefaultInspectorModules(context, factory)
 
         //remove work-around when https://github.com/facebook/stetho/pull/600 is merged
@@ -64,14 +81,14 @@ object StethoHelper {
         for (defaultModule in defaultInspectorModules) {
             if (FacebookDebuggerStub::class != defaultModule::class
                 && FacebookRuntimeBase::class != defaultModule::class
-                ) {
+            ) {
                 inspectorModules.add(defaultModule)
             }
         }
 
-        debugger = Debugger(scriptSourceProvider)
+        debugger = Debugger(scriptSourceProvider, v8Debugger)
         inspectorModules.add(debugger!!)
-        inspectorModules.add(Runtime(factory))
+        inspectorModules.add(Runtime(v8Debugger, factory))
 
         bindV8ToChromeDebuggerIfReady()
 
@@ -81,9 +98,7 @@ object StethoHelper {
     /**
      * @param v8Executor executor, where V8 should be previously initialized and further will be called on.
      */
-//    fun initializeWithV8Debugger(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
     fun initializeWithV8Debugger(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
-//        v8DebuggerRef = WeakReference(v8Debugger)
         v8InspectorRef = WeakReference(v8Inspector)
         v8ExecutorRef = WeakReference(v8Executor)
 
@@ -104,12 +119,16 @@ object StethoHelper {
 
         val v8Inspector = v8InspectorRef?.get()
         val v8Executor = v8ExecutorRef?.get()
-//        val v8DebuggerInitialized = v8Debugger != null && v8Executor != null
         val v8DebuggerInitialized = v8Inspector != null && v8Executor != null
 
         if (v8DebuggerInitialized && chromeDebuggerAttached) {
-//            v8Executor!!.execute { bindV8DebuggerToChromeDebugger(debugger!!, v8Debugger!!, v8Executor) }
-            v8Executor!!.execute { bindV8DebuggerToChromeDebugger(debugger!!, v8Inspector!!, v8Executor) }
+            v8Executor!!.execute {
+                bindV8DebuggerToChromeDebugger(
+                    debugger!!,
+                    v8Inspector!!,
+                    v8Executor
+                )
+            }
         }
     }
 
@@ -117,12 +136,12 @@ object StethoHelper {
      * Shoulds be called when both Chrome debugger and V8 debugger is ready
      *  (When Chrome DevTools UI is open and V8 is created in debug mode with debugger object).
      */
-//    private fun bindV8DebuggerToChromeDebugger(chromeDebugger: Debugger, v8Debugger: DebugHandler, v8Executor: ExecutorService) {
-//        chromeDebugger.initialize(v8Debugger, v8Executor)
-//    }
-    private fun bindV8DebuggerToChromeDebugger(chromeDebugger: Debugger, v8Inspector: V8Inspector, v8Executor: ExecutorService) {
+    private fun bindV8DebuggerToChromeDebugger(
+        chromeDebugger: Debugger,
+        v8Inspector: V8Inspector,
+        v8Executor: ExecutorService
+    ) {
         chromeDebugger.initialize(v8Inspector, v8Executor)
-//        chromeDebugger.initialize(v8Debugger, v8Executor)
     }
 
     /**
@@ -131,8 +150,11 @@ object StethoHelper {
      * @param context Android context, which is required to access android resources by Stetho.
      * @param factory copies behaviour of [Stetho.DefaultInspectorModulesBuilder.runtimeRepl] using [Runtime]
      */
-    private fun getDefaultInspectorModules(context: Context, factory: RuntimeReplFactory?): Iterable<ChromeDevtoolsDomain> {
+    private fun getDefaultInspectorModules(
+        context: Context,
+        factory: RuntimeReplFactory?
+    ): Iterable<ChromeDevtoolsDomain> {
         return Stetho.DefaultInspectorModulesBuilder(context).runtimeRepl(factory)
-                .finish()
+            .finish()
     }
 }

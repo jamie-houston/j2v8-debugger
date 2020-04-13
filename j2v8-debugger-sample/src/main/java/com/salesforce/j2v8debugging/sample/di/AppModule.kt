@@ -2,6 +2,7 @@ package com.salesforce.j2v8debugging.sample.di
 
 import android.content.Context
 import com.salesforce.j2v8debugger.ScriptSourceProvider
+import com.salesforce.j2v8debugger.V8Debugger
 import com.salesforce.j2v8debugging.sample.App
 import com.salesforce.j2v8debugging.sample.SimpleScriptProvider
 import dagger.Binds
@@ -36,5 +37,11 @@ class AppModule {
     @Provides
     fun provideV8ExecutorService(): ExecutorService {
         return Executors.newSingleThreadExecutor();
+    }
+
+    @Singleton
+    @Provides
+    fun providesV8Debugger(): V8Debugger {
+        return V8Debugger()
     }
 }

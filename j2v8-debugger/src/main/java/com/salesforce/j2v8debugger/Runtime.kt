@@ -19,7 +19,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  *  Otherwise setting breakpoint, etc. makes no effect.
  */
 @Suppress("UNUSED_PARAMETER", "unused")
-class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
+class Runtime(private val v8Debugger: V8Debugger, replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
 
@@ -30,7 +30,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
         var result: String? = null
         runBlocking {
-            result = V8Helper.getV8Result(method, params)
+            result = v8Debugger.getV8Result(method, params)
         }
         val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
         return jsonResult as JsonRpcResult

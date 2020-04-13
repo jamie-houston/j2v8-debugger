@@ -125,3 +125,11 @@ data class Scope(
 class SimpleIntegerResult(@JsonProperty(required = true) var result: Int) : JsonRpcResult
 
 class GetPropertiesResult : JSONObject(), JsonRpcResult
+
+//users of the lib can change this value
+private val scriptsDomain = "http://app/"
+private val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
+
+//move to separate mapper class if conversion logic become complicated and used in many places
+private fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
+private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)

@@ -5,10 +5,10 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.salesforce.j2v8debugger.StethoHelper
-import com.salesforce.j2v8debugger.V8Helper
 import com.salesforce.j2v8debugger.releaseDebuggable
 import com.eclipsesource.v8.V8
 import com.google.android.material.snackbar.Snackbar
+import com.salesforce.j2v8debugger.V8Debugger
 import com.salesforce.j2v8debugging.R
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_example.*
@@ -24,6 +24,9 @@ class ExampleActivity : AppCompatActivity() {
     /** V8 should be initialized and further called on the same thread.*/
     @Inject
     lateinit var v8Executor: ExecutorService
+
+    @Inject
+    lateinit var v8Debugger: V8Debugger
 
     lateinit var v8Future: Future<V8>
 
@@ -55,7 +58,7 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun initDebuggableV8(scriptName: String): Future<V8> {
-        return V8Helper.createDebuggableV8Runtime(v8Executor, scriptName)
+        return v8Debugger.createDebuggableV8Runtime(v8Executor, scriptName)
     }
 
     override fun onDestroy() {
