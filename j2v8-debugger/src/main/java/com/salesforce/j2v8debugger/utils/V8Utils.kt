@@ -1,4 +1,4 @@
-package com.salesforce.j2v8debugger
+package com.salesforce.j2v8debugger.utils
 
 import com.eclipsesource.v8.V8
 

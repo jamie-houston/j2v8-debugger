@@ -5,7 +5,7 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.salesforce.j2v8debugger.StethoHelper
-import com.salesforce.j2v8debugger.releaseDebuggable
+import com.salesforce.j2v8debugger.utils.releaseDebuggable
 import com.eclipsesource.v8.V8
 import com.google.android.material.snackbar.Snackbar
 import com.salesforce.j2v8debugger.V8Debugger

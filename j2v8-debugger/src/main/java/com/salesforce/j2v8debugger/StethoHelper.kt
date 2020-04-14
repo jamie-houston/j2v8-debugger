@@ -1,13 +1,13 @@
 package com.salesforce.j2v8debugger
 
 import android.content.Context
-import android.util.Log
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.InspectorModulesProvider
 import com.facebook.stetho.Stetho
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
+import com.salesforce.j2v8debugger.utils.logger
 import java.lang.ref.WeakReference
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -57,7 +57,7 @@ object StethoHelper {
         return try {
             getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, v8Debugger, factory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
-            Log.e(
+            logger.e(
                 Debugger.TAG,
                 "Unable to init Stetho with V8 Debugger. Default set-up will be used",
                 e
