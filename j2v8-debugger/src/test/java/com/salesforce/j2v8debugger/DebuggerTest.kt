@@ -4,15 +4,20 @@ import com.salesforce.j2v8debugger.utils.logger
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
+import io.mockk.Runs
 import io.mockk.called
+import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import java.util.*
 import kotlin.random.Random
 
 class DebuggerTest {
@@ -97,4 +102,35 @@ class DebuggerTest {
         assertTrue(response == null)
     }
 
+    @Test
+    fun `evaluateOnCallFrame gets V8Result`(){
+        val v8Debugger = mockk<V8Debugger>(relaxed = true)
+        val debugger = Debugger(mockk(), v8Debugger)
+        val jsonParamsMock = mockk<JSONObject>()
+        val jsonResult = JSONObject().put(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+
+        coEvery {
+            v8Debugger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
+        }.returns(jsonResult.toString())
+
+
+        val response = debugger.evaluateOnCallFrame(mockk(), jsonParamsMock)
+
+        assertEquals((response as EvaluateOnCallFrameResult).result.toString(), jsonResult.toString())
+    }
+
+    @Test
+    fun `setSkipAllPauses replaces skip with skipped`(){
+        val v8Debugger = mockk<V8Debugger>(relaxed = true)
+        val debugger = Debugger(mockk(), v8Debugger)
+        val jsonResult = slot<JSONObject>()
+        every {
+            v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, capture(jsonResult))
+        } just Runs
+
+        debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))
+
+        assertEquals(jsonResult.captured.getBoolean("skip"), true)
+
+    }
 }
