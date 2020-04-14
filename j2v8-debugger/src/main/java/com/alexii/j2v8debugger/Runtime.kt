@@ -1,6 +1,5 @@
 package com.alexii.j2v8debugger
 
-import androidx.annotation.VisibleForTesting
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
@@ -20,7 +19,6 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  */
 @Suppress("UNUSED_PARAMETER", "unused")
 class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
-    @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
 
     @ChromeDevtoolsMethod
@@ -55,5 +53,4 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun enable(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         return SimpleBooleanResult(true)
     }
-
 }

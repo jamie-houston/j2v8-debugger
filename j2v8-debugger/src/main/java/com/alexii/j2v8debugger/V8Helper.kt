@@ -111,13 +111,10 @@ object V8Helper {
                     }
                 } else if (responseMethod == Protocol.Debugger.BreakpointResolved) {
                     val location = responseParams.getJSONObject("location")
-                    // TODO: ScriptId should not be hardcoded
                     location.put("scriptId", chromeScriptName)
                     val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
                     chromeMessageQueue[responseMethod] = response
                 } else if (responseMethod == Protocol.Debugger.Paused) {
-                    // TODO: ScriptId should not be hardcoded
-                    // Also this replace could inadvertantly replace other strings in the params that match
                     val updatedScript = responseParams.toString().replace("\"$v8ScriptId\"", "\"$chromeScriptName\"")
                     chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
                 }
@@ -156,8 +153,8 @@ object V8Helper {
     }
 
     fun releaseV8Debugger() {
-//        v8Debugger?.release()
-//        v8Debugger = null
+        v8Inspector?.removeDebuggerConnectionListener(debuggerConnectionListener)
+        v8Inspector = null
     }
 
     /**

@@ -5,6 +5,13 @@ import com.facebook.stetho.inspector.protocol.module.Runtime
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 
+//users of the lib can change this value
+private val scriptsDomain = "http://app/"
+private val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
+
+private fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
+private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)
+
 class EvaluateOnCallFrameResult(
     @field:JsonProperty
     @JvmField
@@ -125,3 +132,4 @@ data class Scope(
 class SimpleIntegerResult(@JsonProperty(required = true) var result: Int) : JsonRpcResult
 
 class GetPropertiesResult : JSONObject(), JsonRpcResult
+

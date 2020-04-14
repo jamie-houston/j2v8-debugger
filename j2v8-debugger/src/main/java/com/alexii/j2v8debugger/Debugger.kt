@@ -1,7 +1,6 @@
 
 package com.alexii.j2v8debugger
 
-import androidx.annotation.VisibleForTesting
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.inspector.V8Inspector
@@ -16,13 +15,6 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
-//users of the lib can change this value
-val scriptsDomain = "http://app/"
-val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
-
-//move to separate mapper class if conversion logic become complicated and used in many places
-fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
-fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)
 
 /**
  * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
@@ -35,14 +27,11 @@ class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
 ) : FacebookDebuggerStub() {
     var dtoMapper: ObjectMapper = ObjectMapper()
-        @VisibleForTesting set
-        @VisibleForTesting get
 
     //xxx: consider using WeakReference
     /** Must be called on [v8Executor]]. */
     var v8Inspector: V8Inspector? = null
         private set
-        @VisibleForTesting get
 
 
     /**
