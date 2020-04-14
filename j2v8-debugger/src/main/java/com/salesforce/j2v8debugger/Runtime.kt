@@ -1,6 +1,5 @@
 package com.salesforce.j2v8debugger
 
-import androidx.annotation.VisibleForTesting
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
@@ -20,7 +19,6 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  */
 @Suppress("UNUSED_PARAMETER", "unused")
 class Runtime(private val v8Debugger: V8Debugger, replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
-    @VisibleForTesting
     var adaptee = FacebookRuntimeBase(replFactory)
 
     @ChromeDevtoolsMethod

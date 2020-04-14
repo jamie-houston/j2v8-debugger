@@ -1,6 +1,5 @@
 package com.salesforce.j2v8debugger
 
-import androidx.annotation.VisibleForTesting
 import com.salesforce.j2v8debugger.utils.LogUtils
 import com.salesforce.j2v8debugger.utils.logger
 import com.eclipsesource.v8.inspector.V8Inspector

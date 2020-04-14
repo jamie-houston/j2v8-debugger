@@ -2,7 +2,6 @@ package com.salesforce.j2v8debugger
 
 import android.content.Context
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.InspectorModulesProvider

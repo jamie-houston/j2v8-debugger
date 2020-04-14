@@ -1,11 +1,8 @@
 package com.salesforce.j2v8debugger.utils
 
 import android.util.Log
-import androidx.annotation.VisibleForTesting
 
 internal var logger = Logger()
-    @VisibleForTesting get
-    @VisibleForTesting set
 
 class Logger {
 
@@ -17,5 +14,5 @@ class Logger {
 
     fun e(tag: String, msg: String, tr: Throwable) = Log.e(tag, msg, tr)
 
-    fun getStackTraceString(tr: Throwable) = Log.getStackTraceString(tr)
+    fun getStackTraceString(tr: Throwable): String = Log.getStackTraceString(tr)
 }
