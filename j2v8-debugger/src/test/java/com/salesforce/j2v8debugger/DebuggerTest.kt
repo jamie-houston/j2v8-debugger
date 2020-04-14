@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
+import kotlin.random.Random
 
 class DebuggerTest {
     companion object {
@@ -43,13 +44,14 @@ class DebuggerTest {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
-        val debugger = Debugger(scriptSourceProviderMock, mockk())
+        val v8Debugger = mockk<V8Debugger>(relaxed = true)
+        val debugger = Debugger(scriptSourceProviderMock, v8Debugger)
         debugger.initialize(v8InspectorMock, directExecutor)
 
         val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
-        requestStub.lineNumber = 0;
-        requestStub.columnNumber = 0
+        requestStub.lineNumber = Random(100).nextInt()
+        requestStub.columnNumber = Random(100).nextInt()
 
         val jsonParamsMock = mockk<JSONObject>()
         val mapperMock = mockk<ObjectMapper> {
@@ -61,8 +63,7 @@ class DebuggerTest {
 
         verify (exactly = 1){mapperMock.convertValue(eq(jsonParamsMock), eq(requestStub::class.java))}
 
-//        verify(v8DebugHandlerMock).setScriptBreakpoint(eq(requestStub.scriptId), eq(requestStub.lineNumber!!))
-//        verifyNoMoreInteractions(v8DebugHandlerMock)
+        verify { v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointByUrl, any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
