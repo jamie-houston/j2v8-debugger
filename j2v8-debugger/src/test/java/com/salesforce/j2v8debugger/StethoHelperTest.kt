@@ -13,11 +13,6 @@ import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
-/**
- * Example local unit test, which will execute on the development machine (host).
- *
- * @see [Testing documentation](http://d.android.com/tools/testing)
- */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class StethoHelperTest {
 

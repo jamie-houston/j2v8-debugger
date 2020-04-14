@@ -46,11 +46,10 @@ class DebuggerTest {
     @Test
     fun `works when V8 initialized`() {
         val v8InspectorMock = mockk<V8Inspector>(relaxed = true)
-        val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
         val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(scriptSourceProviderMock, v8Debugger)
+        val debugger = Debugger(mockk(relaxed = true), v8Debugger)
         debugger.initialize(v8InspectorMock, directExecutor)
 
         val requestStub = SetBreakpointByUrlRequest()
@@ -82,8 +81,7 @@ class DebuggerTest {
 
     @Test
     fun `No exceptions thrown when V8 not initialized`() {
-        val scriptSourceProviderMock = mockk<ScriptSourceProvider> {}
-        val debugger = Debugger(scriptSourceProviderMock, mockk())
+        val debugger = Debugger(mockk(), mockk())
 
 
         val requestMock = mockk<SetBreakpointByUrlRequest>()
@@ -131,6 +129,26 @@ class DebuggerTest {
         debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))
 
         assertEquals(jsonResult.captured.getBoolean("skip"), true)
+    }
 
+    @Test
+    fun `getScriptSource returns result from scriptSourceProvider`(){
+        val v8InspectorMock = mockk<V8Inspector>(relaxed = true)
+        val directExecutor = MoreExecutors.newDirectExecutorService()
+        val scriptId = UUID.randomUUID().toString()
+        val scriptSourceProvider = mockk<ScriptSourceProvider>()
+        val v8Debugger = mockk<V8Debugger>(relaxed = true)
+        val debugger = Debugger(scriptSourceProvider, v8Debugger)
+        debugger.initialize(v8InspectorMock, directExecutor)
+        val requestJson = JSONObject().put("scriptId", scriptId)
+        val scriptResponse = UUID.randomUUID().toString()
+
+        every{
+            scriptSourceProvider.getSource(scriptId)
+        }.returns(scriptResponse)
+
+        val result = debugger.getScriptSource(mockk(), requestJson)
+
+        assertEquals((result as GetScriptSourceResponse).scriptSource, scriptResponse)
     }
 }
