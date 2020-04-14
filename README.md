@@ -1,6 +1,7 @@
 # J2V8-Debugger
 
 This project is an add-on for the excellent [J2V8 Project](https://github.com/eclipsesource/J2V8).
+This project is based on the excellent [J2V8 Debugger](https://github.com/jamie-houston/j2v8-debugger)
 
 It allows users to debug JS running in V8 using [Chrome DevTools](https://developers.google.com/web/tools/chrome-devtools/).
 
@@ -18,7 +19,7 @@ Add JitPack repository in your root build.gradle at the end of repositories:
 ```gradle
 allprojects {
     repositories {
-        maven { url "https://jitpack.io" }
+        maven { url "https://dl.bintray.com/salesforce-mobile/android" }
     }
 }
 ```
@@ -26,7 +27,7 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.1.2') // {
+    implementation ('com.salesforce.j2v8debugger:j2v8-debugger:0.2.0') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
@@ -41,8 +42,8 @@ dependencies {
 
 Use `StethoHelper.defaultInspectorModulesProvider()` instead of default `Stetho.defaultInspectorModulesProvider()`.
 
-```.Java
-                final Stetho.Initializer initializer = Stetho.newInitializerBuilder(context)
+```.Kotlin
+                val initializer = Stetho.newInitializerBuilder(context)
                         .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
                         .enableWebKitInspector(StethoHelper.defaultInspectorModulesProvider(context, scriptProvider))
                         .build();
@@ -54,26 +55,20 @@ Use `StethoHelper.defaultInspectorModulesProvider()` instead of default `Stetho.
 
 Use `V8Helper.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
 
-```.Java
-final Future<V8> debuggableV8Runtime = V8Helper.createDebuggableV8Runtime(v8Executor);
+```.Kotlin
+ val debuggableV8Runtime : Future<V8> = V8Helper.createDebuggableV8Runtime(v8Executor, scriptName)
 ```
 
 3. Clean-up of debuggable V8.
 
 Instead of v8.release(reportMemoryLeaks)
 
-```.Java
-v8Executor.execute(() -> V8HelperKt.releaseDebuggable(v8, reportMemoryLeaks));
-```
-
-Or in Kotlin
-
 ```.Kotlin
 
 v8Executor.execute { v8.releaseDebuggable() }
 ```
 
-See [sample project](https://github.com/AlexTrotsenko/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
+See [sample project](https://github.com/salesforce/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/salesforce/j2v8debugging/sample/ExampleActivity.kt) for more info.
 
 ### Notes regarding J2V8 threads.
 - Creation and clean-up of V8 should run on fixed V8 thread.
@@ -92,9 +87,6 @@ Later v8 executor will be passed to Chrome DevTools and used for performing debu
 If Guava is already used in project - MoreExecutors and [ListenableFuture](https://github.com/google/guava/wiki/ListenableFutureExplained) could be handy.
 
 ### Known issues
-- Variables inspection: only local variables and function's arguments are displayed for now.
-
- Reason: variables are obtained from current V8 Frame.
 - It's not possible to set break-point while debugging in progress.
 
  Reason: since J2V8 do not provide debugger.pause()/ debugger.resume() methods - it's emulated by suspending v8 thread.
@@ -106,24 +98,6 @@ If Guava is already used in project - MoreExecutors and [ListenableFuture](https
 
  Reason: When re-opened Chrome DevTools will show new version of JS scripts. No simple "script changed" event was found in Chrome DevTools protocol.
 
-- Evaluation of random JS expression is now working.
+### Useful Links
+https://github.com/cyrus-and/chrome-remote-interface/wiki/Inspect-the-inspector
 
- Reason: not implemented.
-
-### License
-
-```
-Copyright 2015 Alexii Trotsenko
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-   http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
