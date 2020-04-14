@@ -5,22 +5,26 @@ import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInstance
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LoggerTest {
-    val tag = "MyTag"
-    val msg = "My message"
-    val exception = RuntimeException()
+    private val tag = "MyTag"
+    private val msg = "My message"
+    private val exception = RuntimeException()
 
-    @Before
+    @BeforeEach
     fun setUp() {
+        LogUtils.enabled = true
         mockkStatic(Log::class)
     }
 
-    @After
+    @AfterEach
     fun cleanUp() {
+        LogUtils.enabled = false
         unmockkStatic(Log::class)
     }
 
@@ -64,4 +68,13 @@ class LoggerTest {
         verify { Log.getStackTraceString(exception) }
     }
 
+    @Test
+    fun `Logger disabled doesn't log`(){
+        LogUtils.enabled = false
+        every { Log.i(any(), any()) } returns 0
+
+        logger.i(tag, msg)
+
+        verify (exactly = 0){ Log.i(tag, msg) }
+    }
 }

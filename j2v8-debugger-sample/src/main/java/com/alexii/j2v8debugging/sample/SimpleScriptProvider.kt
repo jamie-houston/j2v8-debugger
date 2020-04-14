@@ -2,7 +2,7 @@ package com.alexii.j2v8debugging.sample
 
 import com.alexii.j2v8debugger.ScriptSourceProvider
 import java.text.DateFormat
-import java.util.*
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 

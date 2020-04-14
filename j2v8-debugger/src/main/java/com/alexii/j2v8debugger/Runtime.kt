@@ -1,11 +1,12 @@
 package com.alexii.j2v8debugger
 
-import android.support.annotation.VisibleForTesting
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
+import com.facebook.stetho.inspector.protocol.module.SimpleBooleanResult
+import org.json.JSONArray
 import org.json.JSONObject
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
@@ -15,23 +16,16 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
  *  Otherwise setting breakpoint, etc. makes no effect.
  */
-class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
-    @VisibleForTesting
+@Suppress("UNUSED_PARAMETER", "unused")
+class Runtime(private val v8Debugger: V8Debugger, replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     var adaptee = FacebookRuntimeBase(replFactory)
 
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        /**
-         * hack needed to return local variables: Runtime.getProperties called after Debugger.paused.
-         * https://github.com/facebook/stetho/issues/611
-         * xxx: check if it should be conditional for requested related to Debugger only
-         */
-
-        params?.put("ownProperties", true)
-
-        val result = adaptee.getProperties(peer, params)
-
-        return result
+        val method = Protocol.Runtime.GetProperties
+        val result = v8Debugger.getV8Result(method, params)
+        val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
+        return jsonResult as JsonRpcResult
     }
 
     @ChromeDevtoolsMethod
@@ -48,4 +42,9 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult = adaptee.evaluate(peer, params)
+
+    @ChromeDevtoolsMethod
+    fun enable(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        return SimpleBooleanResult(true)
+    }
 }

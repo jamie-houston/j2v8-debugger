@@ -1,18 +1,18 @@
 package com.alexii.j2v8debugging.sample
 
 import android.os.Bundle
-import android.support.design.widget.Snackbar
-import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import androidx.appcompat.app.AppCompatActivity
 import com.alexii.j2v8debugger.StethoHelper
-import com.alexii.j2v8debugger.V8Helper
-import com.alexii.j2v8debugger.releaseDebuggable
+import com.alexii.j2v8debugger.V8Debugger
 import com.alexii.j2v8debugging.R
 import com.eclipsesource.v8.V8
+import com.google.android.material.snackbar.Snackbar
 import dagger.android.AndroidInjection
-import kotlinx.android.synthetic.main.activity_example.*
-import java.util.*
+import kotlinx.android.synthetic.main.activity_example.fab
+import kotlinx.android.synthetic.main.activity_example.toolbar
+import java.util.Random
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import javax.inject.Inject
@@ -25,23 +25,25 @@ class ExampleActivity : AppCompatActivity() {
     @Inject
     lateinit var v8Executor: ExecutorService
 
+    @Inject
+    lateinit var v8Debugger: V8Debugger
+
     lateinit var v8Future: Future<V8>
 
     /** Must be called only in v8's thread only. */
-    private val v8: V8 by lazy {v8Future.get()}
-
+    private val v8: V8 by lazy { v8Future.get() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val scriptName = "hello-world"
         AndroidInjection.inject(this)
         updateUserToRandom()
-        v8Future = initDebuggableV8()
+        v8Future = initDebuggableV8(scriptName)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_example)
         setSupportActionBar(toolbar)
 
         fab.setOnClickListener { view ->
-            val scriptName = "hello-world"
             val jsScript = simpleScriptProvider.getSource(scriptName)
 
             v8Executor.submit {
@@ -49,13 +51,13 @@ class ExampleActivity : AppCompatActivity() {
                 println("[v8 execution result: ] $result")
 
                 Snackbar.make(view, "V8 answers: $result", Snackbar.LENGTH_SHORT)
-                        .setAction("V8Action", null).show()
+                    .setAction("V8Action", null).show()
             }
         }
     }
 
-    private fun initDebuggableV8(): Future<V8> {
-        return V8Helper.createDebuggableV8Runtime(v8Executor)
+    private fun initDebuggableV8(scriptName: String): Future<V8> {
+        return v8Debugger.createDebuggableV8Runtime(v8Executor, scriptName)
     }
 
     override fun onDestroy() {
@@ -65,7 +67,10 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun releaseDebuggableV8() {
-        v8Executor.execute { v8.releaseDebuggable() }
+        v8Executor.execute {
+            v8Debugger.releaseV8Debugger()
+            v8.close()
+        }
     }
 
     private fun updateUserToRandom() {

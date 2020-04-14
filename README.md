@@ -26,7 +26,7 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.1.2') // {
+    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.0') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
@@ -41,8 +41,8 @@ dependencies {
 
 Use `StethoHelper.defaultInspectorModulesProvider()` instead of default `Stetho.defaultInspectorModulesProvider()`.
 
-```.Java
-                final Stetho.Initializer initializer = Stetho.newInitializerBuilder(context)
+```.Kotlin
+                val initializer = Stetho.newInitializerBuilder(context)
                         .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
                         .enableWebKitInspector(StethoHelper.defaultInspectorModulesProvider(context, scriptProvider))
                         .build();
@@ -54,23 +54,17 @@ Use `StethoHelper.defaultInspectorModulesProvider()` instead of default `Stetho.
 
 Use `V8Helper.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
 
-```.Java
-final Future<V8> debuggableV8Runtime = V8Helper.createDebuggableV8Runtime(v8Executor);
+```.Kotlin
+ val debuggableV8Runtime : Future<V8> = V8Helper.createDebuggableV8Runtime(v8Executor, scriptName)
 ```
 
 3. Clean-up of debuggable V8.
 
-Instead of v8.release(reportMemoryLeaks)
-
-```.Java
-v8Executor.execute(() -> V8HelperKt.releaseDebuggable(v8, reportMemoryLeaks));
-```
-
-Or in Kotlin
+In addition to v8.close()
 
 ```.Kotlin
 
-v8Executor.execute { v8.releaseDebuggable() }
+v8Executor.execute { v8Debugger.releaseDebuggable() }
 ```
 
 See [sample project](https://github.com/AlexTrotsenko/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
@@ -92,35 +86,18 @@ Later v8 executor will be passed to Chrome DevTools and used for performing debu
 If Guava is already used in project - MoreExecutors and [ListenableFuture](https://github.com/google/guava/wiki/ListenableFutureExplained) could be handy.
 
 ### Known issues
-- Variables inspection: only local variables and function's arguments are displayed for now.
-
- Reason: variables are obtained from current V8 Frame.
 - It's not possible to set break-point while debugging in progress.
 
- Reason: since J2V8 do not provide debugger.pause()/ debugger.resume() methods - it's emulated by suspending v8 thread.
- Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
-- All keys of V8 objects are displayed twice.
-
- Reason: Chrome DevTools UI calls _Runtime.getProperties()_ twice for unknown reason.
-- StethoHelper.notifyScriptsChanged() currently closes Chrome DevTools connection instead of updating script source code.
-
- Reason: When re-opened Chrome DevTools will show new version of JS scripts. No simple "script changed" event was found in Chrome DevTools protocol.
-
-- Evaluation of random JS expression is now working.
-
- Reason: not implemented.
+ Reason: Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
 
 ### License
 
 ```
 Copyright 2015 Alexii Trotsenko
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
    http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
