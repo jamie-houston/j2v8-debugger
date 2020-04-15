@@ -10,12 +10,14 @@ package com.salesforce.j2v8debugging.sample
 
 import android.app.Activity
 import android.app.Application
+import com.facebook.flipper.android.AndroidFlipperClient
 import com.salesforce.j2v8debugger.BuildConfig
 import com.salesforce.j2v8debugger.ScriptSourceProvider
 import com.salesforce.j2v8debugger.StethoHelper
 import com.salesforce.j2v8debugger.utils.LogUtils
 import com.salesforce.j2v8debugging.sample.di.DaggerAppComponent
 import com.facebook.stetho.Stetho
+import com.salesforce.j2v8debugger.DebuggerFlipperPlugin
 import com.salesforce.j2v8debugger.V8Debugger
 import dagger.android.AndroidInjector
 import dagger.android.DispatchingAndroidInjector
@@ -44,6 +46,10 @@ class App : Application(), HasActivityInjector {
                 .application(this)
                 .build()
                 .inject(this)
+        val flipperClient = AndroidFlipperClient.getInstance(this)
+// Add all sorts of other amazing plugins here ...
+        flipperClient.addPlugin(DebuggerFlipperPlugin())
+        flipperClient.start()
 
         val context = this
         val initializer = Stetho.newInitializerBuilder(context)
