@@ -79,7 +79,9 @@ class V8Debugger: V8InspectorDelegate {
             val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.getInt("id") }
             if (pendingMessage != null) {
                 pendingMessage.response = message.optJSONObject("result")?.optString("result")
-                lock.unlock()
+                if (lock.isLocked) {
+                    lock.unlock()
+                }
             }
         } else if (message.has("method")) {
             // This is an event
