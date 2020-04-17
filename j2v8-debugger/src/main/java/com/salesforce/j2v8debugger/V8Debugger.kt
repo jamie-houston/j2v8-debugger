@@ -13,9 +13,8 @@ import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.salesforce.j2v8debugger.utils.logger
-import kotlinx.coroutines.delay
 import org.json.JSONObject
-import java.util.*
+import java.util.Collections
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -34,7 +33,7 @@ class V8Debugger: V8InspectorDelegate {
     private var v8ScriptId: String? = null
     private lateinit var chromeScriptName: String
 
-    /**
+   /**
      * @return new or existing v8 debugger object.
      * Must be released before [V8.release] is called.
      */
@@ -144,13 +143,13 @@ class V8Debugger: V8InspectorDelegate {
         })
     }
 
-    suspend fun getV8Result(method: String, params: JSONObject?): String? {
+    fun getV8Result(method: String, params: JSONObject?): String? {
         val pendingMessage = PendingResponse(method, nextDispatchId.incrementAndGet())
         pendingMessageQueue.add(pendingMessage)
 
         v8MessageQueue[method] = params ?: JSONObject()
         while (pendingMessage.response.isNullOrBlank()) {
-            delay(50L)
+            // wait for response from server
         }
         pendingMessageQueue.remove(pendingMessage)
         return pendingMessage.response

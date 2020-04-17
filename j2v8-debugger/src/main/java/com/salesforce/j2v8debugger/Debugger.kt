@@ -8,15 +8,14 @@
 
 package com.salesforce.j2v8debugger
 
-import com.salesforce.j2v8debugger.utils.LogUtils
-import com.salesforce.j2v8debugger.utils.logger
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
 import com.facebook.stetho.websocket.CloseCodes
-import kotlinx.coroutines.runBlocking
+import com.salesforce.j2v8debugger.utils.LogUtils
+import com.salesforce.j2v8debugger.utils.logger
 import org.json.JSONObject
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
@@ -79,23 +78,19 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?){
+    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?) {
         // Ignore
     }
 
     @ChromeDevtoolsMethod
-    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?) : JsonRpcResult? {
+    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
         val method = Protocol.Debugger.EvaluateOnCallFrame
-
-        var result: String? = null
-        runBlocking {
-            result = v8Debugger.getV8Result(method, params)
-        }
+        val result = v8Debugger.getV8Result(method, params)
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 
     @ChromeDevtoolsMethod
-    fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?){
+    fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
         // This was changed from skipped to skip
         // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
         v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")))
@@ -144,12 +139,12 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.Resume,  params)
+        v8Debugger.queueV8Message(Protocol.Debugger.Resume, params)
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.Pause,  params)
+        v8Debugger.queueV8Message(Protocol.Debugger.Pause, params)
 
         //check what's needed here
     }
@@ -161,12 +156,12 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepInto,  params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepInto, params)
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepOut,  params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepOut, params)
     }
 
     @ChromeDevtoolsMethod
@@ -184,7 +179,7 @@ class Debugger(
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
                 val breakpointParams = JSONObject().put("lineNumber", request.lineNumber).put("url", request.scriptId).put("columnNumber", request.columnNumber)
-                v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointByUrl,  breakpointParams.toString())
+                v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointByUrl, breakpointParams.toString())
                 SetBreakpointByUrlResponse("1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
@@ -197,19 +192,19 @@ class Debugger(
         //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
         // -> do best effort to remove breakpoint when executor is free
         runStethoAndV8Safely {
-            v8Executor!!.execute {v8Debugger.dispatchMessage(Protocol.Debugger.RemoveBreakpoint, params.toString())}
+            v8Executor!!.execute { v8Debugger.dispatchMessage(Protocol.Debugger.RemoveBreakpoint, params.toString()) }
         }
     }
 
     @ChromeDevtoolsMethod
-    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult{
+    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
         return SimpleIntegerResult(32)
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject){
+    fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject) {
         runStethoAndV8Safely {
-            v8Executor?.execute {v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointsActive, params.toString()) }
+            v8Executor?.execute { v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointsActive, params.toString()) }
         }
     }
 
