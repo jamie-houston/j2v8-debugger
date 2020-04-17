@@ -18,9 +18,7 @@ import java.util.Collections
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.locks.ReentrantLock
 import kotlin.collections.LinkedHashMap
 
 class V8Debugger: V8InspectorDelegate {
@@ -35,9 +33,7 @@ class V8Debugger: V8InspectorDelegate {
     private var v8ScriptId: String? = null
     private lateinit var chromeScriptName: String
 
-    private val lock: ReentrantLock = ReentrantLock()
-
-    /**
+   /**
      * @return new or existing v8 debugger object.
      * Must be released before [V8.release] is called.
      */
@@ -79,9 +75,6 @@ class V8Debugger: V8InspectorDelegate {
             val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.getInt("id") }
             if (pendingMessage != null) {
                 pendingMessage.response = message.optJSONObject("result")?.optString("result")
-                if (lock.isLocked) {
-                    lock.unlock()
-                }
             }
         } else if (message.has("method")) {
             // This is an event
@@ -156,7 +149,7 @@ class V8Debugger: V8InspectorDelegate {
 
         v8MessageQueue[method] = params ?: JSONObject()
         while (pendingMessage.response.isNullOrBlank()) {
-            lock.tryLock(50, TimeUnit.MILLISECONDS)
+            // wait for response from server
         }
         pendingMessageQueue.remove(pendingMessage)
         return pendingMessage.response
