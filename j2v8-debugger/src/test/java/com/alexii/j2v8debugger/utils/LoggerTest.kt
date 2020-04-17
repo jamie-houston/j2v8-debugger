@@ -1,28 +1,20 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger.utils
+package com.alexii.j2v8debugger.utils
 
 import android.util.Log
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import io.mockk.verify
-import org.junit.jupiter.api.AfterAll
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LoggerTest {
-    val tag = "MyTag"
-    val msg = "My message"
-    val exception = RuntimeException()
+    private val tag = "MyTag"
+    private val msg = "My message"
+    private val exception = RuntimeException()
 
     @BeforeEach
     fun setUp() {
@@ -30,7 +22,7 @@ class LoggerTest {
         mockkStatic(Log::class)
     }
 
-    @AfterAll
+    @AfterEach
     fun cleanUp() {
         LogUtils.enabled = false
         unmockkStatic(Log::class)

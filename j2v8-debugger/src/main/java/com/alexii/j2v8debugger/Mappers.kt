@@ -1,15 +1,6 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger
+package com.alexii.j2v8debugger
 
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
-import com.facebook.stetho.inspector.protocol.module.Runtime
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 
@@ -42,7 +33,6 @@ class GetScriptSourceResponse(
 ) : JsonRpcResult
 
 class SetBreakpointByUrlRequest : JsonRpcResult {
-    //script id
     @field:JsonProperty
     @JvmField
     var url: String? = null
@@ -64,25 +54,15 @@ class SetBreakpointByUrlRequest : JsonRpcResult {
     val scriptId get() = urlToScriptId(url)
 }
 
-
 class SetBreakpointByUrlResponse(
+    request: SetBreakpointByUrlRequest) : JsonRpcResult {
     @field:JsonProperty @JvmField
-    val breakpointId: String,
+    val breakpointId = "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
 
-    location: Location
-) : JsonRpcResult {
     @field:JsonProperty
     @JvmField
-    val locations: List<Location> = listOf(location)
+    val locations: List<Location> = listOf(Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
 }
-
-class RemoveBreakpointRequest : JsonRpcResult {
-    //script id
-    @field:JsonProperty
-    @JvmField
-    var breakpointId: String? = null
-}
-
 
 data class Location(
     @field:JsonProperty @JvmField
@@ -94,43 +74,6 @@ data class Location(
     @field:JsonProperty @JvmField
     val columnNumber: Int
 )
-
-data class CallFrame @JvmOverloads constructor(
-    @field:JsonProperty @JvmField
-    val callFrameId: String,
-
-    @field:JsonProperty @JvmField
-    val functionName: String,
-
-    @field:JsonProperty @JvmField
-    val location: Location,
-
-    /** JavaScript script name or url. */
-    @field:JsonProperty @JvmField
-    val url: String,
-
-    @field:JsonProperty @JvmField
-    val scopeChain: List<Scope>,
-
-    //xxx: check how and whether it's wotking with this
-    @field:JsonProperty @JvmField
-    val `this`: Runtime.RemoteObject? = null
-)
-
-data class Scope(
-    /** one of: global, local, with, closure, catch, block, script, eval, module. */
-    @field:JsonProperty @JvmField
-    val type: String,
-    /**
-     * Object representing the scope.
-     * For global and with scopes it represents the actual object;
-     * for the rest of the scopes, it is artificial transient object enumerating scope variables as its properties.
-     */
-    @field:JsonProperty @JvmField
-    val `object`: Runtime.RemoteObject
-)
-
-class SimpleIntegerResult(@JsonProperty(required = true) var result: Int) : JsonRpcResult
 
 class GetPropertiesResult : JSONObject(), JsonRpcResult
 

@@ -1,15 +1,7 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
+package com.alexii.j2v8debugger.utils
 
-package com.salesforce.j2v8debugger.utils
-
-import com.salesforce.j2v8debugger.BuildConfig
-import com.salesforce.j2v8debugger.Debugger.Companion.TAG
+import com.alexii.j2v8debugger.BuildConfig
+import com.alexii.j2v8debugger.Debugger.Companion.TAG
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 
@@ -19,8 +11,6 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
  * Calling this method is "expensive" operation. Make sure, that it's done rare or only in [BuildConfig.DEBUG]
  *
  * See http://stackoverflow.com/a/11306854/3134602
- *
- * TODO: Use Throwable.getStackTrace() for better performance. See http://stackoverflow.com/a/2347878/3134602
  */
 object LogUtils {
     @JvmStatic
@@ -31,7 +21,7 @@ object LogUtils {
      * Note: This method is always called from the child of [ChromeDevtoolsDomain]
      */
     fun getChromeDevToolsMethodName(): String {
-        val stackTraceElements = Thread.currentThread().stackTrace
+        val stackTraceElements = Throwable().stackTrace
 
         val chromeDevtoolsStackTraceElement = stackTraceElements
                 .find {
@@ -50,7 +40,7 @@ object LogUtils {
     }
 
     fun logChromeDevToolsCalled() {
-        if (!enabled) return;
+        if (!enabled) return
 
         try {
             logger.i(TAG, "Calling " + getChromeDevToolsMethodName())

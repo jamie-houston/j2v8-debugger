@@ -1,12 +1,4 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger
+package com.alexii.j2v8debugger
 
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -14,7 +6,6 @@ import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.inspector.protocol.module.SimpleBooleanResult
-import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
@@ -31,13 +22,8 @@ class Runtime(private val v8Debugger: V8Debugger, replFactory: RuntimeReplFactor
 
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-
         val method = Protocol.Runtime.GetProperties
-
-        var result: String? = null
-        runBlocking {
-            result = v8Debugger.getV8Result(method, params)
-        }
+        val result = v8Debugger.getV8Result(method, params)
         val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
         return jsonResult as JsonRpcResult
     }

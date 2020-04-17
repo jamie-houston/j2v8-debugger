@@ -1,26 +1,18 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugging.sample
+package com.alexii.j2v8debugging.sample
 
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import com.salesforce.j2v8debugger.StethoHelper
-import com.salesforce.j2v8debugger.utils.releaseDebuggable
+import com.alexii.j2v8debugger.StethoHelper
+import com.alexii.j2v8debugger.V8Debugger
+import com.alexii.j2v8debugging.R
 import com.eclipsesource.v8.V8
 import com.google.android.material.snackbar.Snackbar
-import com.salesforce.j2v8debugger.V8Debugger
-import com.salesforce.j2v8debugging.R
 import dagger.android.AndroidInjection
-import kotlinx.android.synthetic.main.activity_example.*
-import java.util.*
+import kotlinx.android.synthetic.main.activity_example.fab
+import kotlinx.android.synthetic.main.activity_example.toolbar
+import java.util.Random
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import javax.inject.Inject
@@ -39,8 +31,7 @@ class ExampleActivity : AppCompatActivity() {
     lateinit var v8Future: Future<V8>
 
     /** Must be called only in v8's thread only. */
-    private val v8: V8 by lazy {v8Future.get()}
-
+    private val v8: V8 by lazy { v8Future.get() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val scriptName = "hello-world"
@@ -60,7 +51,7 @@ class ExampleActivity : AppCompatActivity() {
                 println("[v8 execution result: ] $result")
 
                 Snackbar.make(view, "V8 answers: $result", Snackbar.LENGTH_SHORT)
-                        .setAction("V8Action", null).show()
+                    .setAction("V8Action", null).show()
             }
         }
     }
@@ -76,7 +67,10 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun releaseDebuggableV8() {
-        v8Executor.execute { v8.releaseDebuggable() }
+        v8Executor.execute {
+            v8Debugger.releaseV8Debugger()
+            v8.close()
+        }
     }
 
     private fun updateUserToRandom() {

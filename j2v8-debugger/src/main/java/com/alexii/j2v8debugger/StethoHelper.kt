@@ -1,12 +1,4 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger
+package com.alexii.j2v8debugger
 
 import android.content.Context
 import com.eclipsesource.v8.V8
@@ -15,9 +7,8 @@ import com.facebook.stetho.InspectorModulesProvider
 import com.facebook.stetho.Stetho
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
-import com.salesforce.j2v8debugger.utils.logger
+import com.alexii.j2v8debugger.utils.logger
 import java.lang.ref.WeakReference
-import java.util.*
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
@@ -116,7 +107,6 @@ object StethoHelper {
      * New content will be displayed when it will be opened again.
      */
     fun notifyScriptsChanged() {
-        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
         debugger?.onScriptsChanged()
     }
 
@@ -128,10 +118,9 @@ object StethoHelper {
         val v8DebuggerInitialized = v8Inspector != null && v8Executor != null
 
         if (v8DebuggerInitialized && chromeDebuggerAttached) {
-            v8Executor!!.execute {
+            v8Executor?.execute {
                 bindV8DebuggerToChromeDebugger(
                     debugger!!,
-                    v8Inspector!!,
                     v8Executor
                 )
             }
@@ -144,10 +133,9 @@ object StethoHelper {
      */
     private fun bindV8DebuggerToChromeDebugger(
         chromeDebugger: Debugger,
-        v8Inspector: V8Inspector,
         v8Executor: ExecutorService
     ) {
-        chromeDebugger.initialize(v8Inspector, v8Executor)
+        chromeDebugger.initialize(v8Executor)
     }
 
     /**

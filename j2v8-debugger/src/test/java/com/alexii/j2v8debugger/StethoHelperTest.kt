@@ -1,23 +1,14 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger
+package com.alexii.j2v8debugger
 
 import android.app.Application
 import com.eclipsesource.v8.inspector.V8Inspector
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import org.junit.Ignore
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
@@ -68,9 +59,8 @@ class StethoHelperTest {
         verify(exactly = 1) { v8ExecutorServiceMock.execute(any()) }
     }
 
-    //xxx: check why test is failing if run together with other, but ok when run separately
     @Test
-    @Ignore("This test won't work due to Debugger being a static property on StethoHelper (and set in the previous test")
+    @Disabled("This test won't work due to Debugger being a static property on StethoHelper (and set in the previous test)")
     fun `initialized when v8 created before Stetho`() {
         val v8InspectorMock = mockk<V8Inspector>()
         val v8ExecutorServiceMock = mockk<ExecutorService> {
