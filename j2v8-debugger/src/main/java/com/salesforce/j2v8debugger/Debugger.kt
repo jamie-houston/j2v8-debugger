@@ -8,15 +8,14 @@
 
 package com.salesforce.j2v8debugger
 
-import com.salesforce.j2v8debugger.utils.LogUtils
-import com.salesforce.j2v8debugger.utils.logger
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
 import com.facebook.stetho.websocket.CloseCodes
-import kotlinx.coroutines.runBlocking
+import com.salesforce.j2v8debugger.utils.LogUtils
+import com.salesforce.j2v8debugger.utils.logger
 import org.json.JSONObject
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
@@ -86,11 +85,7 @@ class Debugger(
     @ChromeDevtoolsMethod
     fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?) : JsonRpcResult? {
         val method = Protocol.Debugger.EvaluateOnCallFrame
-
-        var result: String? = null
-        runBlocking {
-            result = v8Debugger.getV8Result(method, params)
-        }
+        val result = v8Debugger.getV8Result(method, params)
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 
