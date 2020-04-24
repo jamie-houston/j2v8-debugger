@@ -11,6 +11,7 @@ package com.salesforce.j2v8debugger
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
+import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
 import com.facebook.stetho.websocket.CloseCodes
@@ -97,12 +98,12 @@ class Debugger(
     }
 
     private fun onDisconnect() {
+        logger.d(TAG, "Disconnecting from Chrome")
         runStethoSafely {
+            NetworkPeerManager.getInstanceOrNull()?.removePeer(connectedPeer)
             connectedPeer = null
             //avoid app being freezed when no debugging happening anymore
-            v8Executor?.execute {
-                v8Debugger.dispatchMessage(Protocol.Debugger.Resume)
-            }
+            v8Debugger.setDebuggerConnected(false)
             // TODO: Remove all breakpoints (so next launch doesn't have them
             //xxx: check if something else is needed to be done here
         }
