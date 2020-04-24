@@ -49,6 +49,8 @@ class Debugger(
 
     private var connectedPeer: JsonRpcPeer? = null
 
+    private val breakpointsAdded = mutableListOf<String>()
+
     companion object {
         const val TAG = "j2v8-debugger"
     }
@@ -100,12 +102,23 @@ class Debugger(
     private fun onDisconnect() {
         logger.d(TAG, "Disconnecting from Chrome")
         runStethoSafely {
+            breakpointsAdded.forEach { breakpointId ->
+                v8Executor?.execute {
+                    v8Debugger.dispatchMessage(
+                        Protocol.Debugger.RemoveBreakpoint,
+                        "{\"breakpointId\": \"$breakpointId\"}"
+                    )
+                }
+            }
+            breakpointsAdded.clear()
+
             NetworkPeerManager.getInstanceOrNull()?.removePeer(connectedPeer)
             connectedPeer = null
+
             //avoid app being freezed when no debugging happening anymore
             v8Debugger.setDebuggerConnected(false)
-            // TODO: Remove all breakpoints (so next launch doesn't have them
-            //xxx: check if something else is needed to be done here
+
+//                breakpointsAdded.forEach{breakpointId -> v8Debugger.queueV8Message(Protocol.Debugger.RemoveBreakpoint, JSONObject().put("breakpointId", breakpointId))}
         }
     }
 
@@ -179,9 +192,20 @@ class Debugger(
         return runStethoAndV8Safely {
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
-                val breakpointParams = JSONObject().put("lineNumber", request.lineNumber).put("url", request.scriptId).put("columnNumber", request.columnNumber)
-                v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointByUrl, breakpointParams.toString())
-                SetBreakpointByUrlResponse("1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}", Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
+                val breakpointParams =
+                    JSONObject().put("lineNumber", request.lineNumber).put("url", request.scriptId)
+                        .put("columnNumber", request.columnNumber)
+                v8Debugger.dispatchMessage(
+                    Protocol.Debugger.SetBreakpointByUrl,
+                    breakpointParams.toString()
+                )
+                val breakpointId =
+                    "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
+                breakpointsAdded.add(breakpointId)
+                SetBreakpointByUrlResponse(
+                    breakpointId,
+                    Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!)
+                )
             })
 
             responseFuture.get()
@@ -193,8 +217,14 @@ class Debugger(
         //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
         // -> do best effort to remove breakpoint when executor is free
         runStethoAndV8Safely {
-            v8Executor!!.execute { v8Debugger.dispatchMessage(Protocol.Debugger.RemoveBreakpoint, params.toString()) }
+            v8Executor!!.execute {
+                v8Debugger.dispatchMessage(
+                    Protocol.Debugger.RemoveBreakpoint,
+                    params.toString()
+                )
+            }
         }
+        breakpointsAdded.remove(params.getString("breakpointId"))
     }
 
     @ChromeDevtoolsMethod

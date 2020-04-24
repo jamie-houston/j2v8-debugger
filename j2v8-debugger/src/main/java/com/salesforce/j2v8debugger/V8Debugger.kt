@@ -137,6 +137,7 @@ class V8Debugger: V8InspectorDelegate {
 
             dispatchMessage(Protocol.Runtime.RunIfWaitingForDebugger)
 
+
             StethoHelper.initializeWithV8Debugger(inspector, v8Executor)
 
             runtime
