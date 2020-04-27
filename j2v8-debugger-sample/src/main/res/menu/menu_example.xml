@@ -1,15 +1,7 @@
-<!--
-  ~ Copyright (c) 2020, Salesforce.com, inc.
-  ~ All rights reserved.
-  ~ SPDX-License-Identifier: BSD-3-Clause
-  ~ For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
-  ~
-  -->
-
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.salesforce.j2v8debugging.sample.ExampleActivity">
+    tools:context="com.alexii.j2v8debugging.sample.ExampleActivity">
     <item
         android:id="@+id/action_scripts_changed"
         android:orderInCategory="100"

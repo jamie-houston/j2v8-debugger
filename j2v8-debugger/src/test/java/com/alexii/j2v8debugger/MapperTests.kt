@@ -1,17 +1,10 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger
+package com.alexii.j2v8debugger
 
 import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONObject
 import org.junit.jupiter.api.Test
-import java.util.*
+import java.util.UUID
+import java.util.Random
 import kotlin.test.assertEquals
 
 class MapperTests {

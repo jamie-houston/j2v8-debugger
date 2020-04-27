@@ -1,18 +1,10 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugger
+package com.alexii.j2v8debugger
 
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
 import com.facebook.stetho.inspector.network.NetworkPeerManager
-import com.salesforce.j2v8debugger.utils.logger
+import com.alexii.j2v8debugger.utils.logger
 import org.json.JSONObject
 import java.util.Collections
 import java.util.concurrent.Callable

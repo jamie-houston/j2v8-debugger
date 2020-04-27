@@ -19,7 +19,7 @@ Add JitPack repository in your root build.gradle at the end of repositories:
 ```gradle
 allprojects {
     repositories {
-        maven { url "https://dl.bintray.com/salesforce-mobile/android" }
+        maven { url "https://jitpack.io" }
     }
 }
 ```
@@ -27,7 +27,7 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.salesforce.j2v8debugger:j2v8-debugger:0.2.0') // {
+    implementation ('com.alexii.j2v8debugger:j2v8-debugger:0.2.0') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
@@ -61,14 +61,14 @@ Use `V8Helper.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
 
 3. Clean-up of debuggable V8.
 
-Instead of v8.release(reportMemoryLeaks)
+In addition to v8.close()
 
 ```.Kotlin
 
-v8Executor.execute { v8.releaseDebuggable() }
+v8Executor.execute { v8Debugger.releaseDebuggable() }
 ```
 
-See [sample project](https://github.com/salesforce/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/salesforce/j2v8debugging/sample/ExampleActivity.kt) for more info.
+See [sample project](https://github.com/alexii/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
 
 ### Notes regarding J2V8 threads.
 - Creation and clean-up of V8 should run on fixed V8 thread.
@@ -89,15 +89,7 @@ If Guava is already used in project - MoreExecutors and [ListenableFuture](https
 ### Known issues
 - It's not possible to set break-point while debugging in progress.
 
- Reason: since J2V8 do not provide debugger.pause()/ debugger.resume() methods - it's emulated by suspending v8 thread.
- Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
-- All keys of V8 objects are displayed twice.
-
- Reason: Chrome DevTools UI calls _Runtime.getProperties()_ twice for unknown reason.
-- StethoHelper.notifyScriptsChanged() currently closes Chrome DevTools connection instead of updating script source code.
-
- Reason: When re-opened Chrome DevTools will show new version of JS scripts. No simple "script changed" event was found in Chrome DevTools protocol.
-
+ Reason: Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
+ 
 ### Useful Links
 https://github.com/cyrus-and/chrome-remote-interface/wiki/Inspect-the-inspector
-

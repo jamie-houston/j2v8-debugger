@@ -1,22 +1,14 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
-
-package com.salesforce.j2v8debugging.sample
+package com.alexii.j2v8debugging.sample
 
 import android.app.Activity
 import android.app.Application
-import com.salesforce.j2v8debugger.BuildConfig
-import com.salesforce.j2v8debugger.ScriptSourceProvider
-import com.salesforce.j2v8debugger.StethoHelper
-import com.salesforce.j2v8debugger.utils.LogUtils
-import com.salesforce.j2v8debugging.sample.di.DaggerAppComponent
+import com.alexii.j2v8debugger.BuildConfig
+import com.alexii.j2v8debugger.ScriptSourceProvider
+import com.alexii.j2v8debugger.StethoHelper
+import com.alexii.j2v8debugger.utils.LogUtils
+import com.alexii.j2v8debugging.sample.di.DaggerAppComponent
 import com.facebook.stetho.Stetho
-import com.salesforce.j2v8debugger.V8Debugger
+import com.alexii.j2v8debugger.V8Debugger
 import dagger.android.AndroidInjector
 import dagger.android.DispatchingAndroidInjector
 import dagger.android.HasActivityInjector
