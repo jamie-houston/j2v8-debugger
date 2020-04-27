@@ -88,7 +88,7 @@ class Debugger(
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
         // This was changed from skipped to skip
         // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
-        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")))
+        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
     }
 
     private fun onDisconnect() {
@@ -143,27 +143,27 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.Resume, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.Resume, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.Pause, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.Pause, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepOver, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepOver, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepInto, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepInto, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepOut, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepOut, params, true)
     }
 
     @ChromeDevtoolsMethod
