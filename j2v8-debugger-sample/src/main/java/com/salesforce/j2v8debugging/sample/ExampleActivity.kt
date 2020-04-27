@@ -13,7 +13,6 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.salesforce.j2v8debugger.StethoHelper
-import com.salesforce.j2v8debugger.utils.releaseDebuggable
 import com.eclipsesource.v8.V8
 import com.google.android.material.snackbar.Snackbar
 import com.salesforce.j2v8debugger.V8Debugger
@@ -76,7 +75,10 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun releaseDebuggableV8() {
-        v8Executor.execute { v8.releaseDebuggable() }
+        v8Executor.execute {
+            v8Debugger.releaseV8Debugger()
+            v8.close()
+        }
     }
 
     private fun updateUserToRandom() {

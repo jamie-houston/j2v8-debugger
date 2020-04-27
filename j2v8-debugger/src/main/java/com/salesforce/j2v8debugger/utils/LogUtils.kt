@@ -19,8 +19,6 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
  * Calling this method is "expensive" operation. Make sure, that it's done rare or only in [BuildConfig.DEBUG]
  *
  * See http://stackoverflow.com/a/11306854/3134602
- *
- * TODO: Use Throwable.getStackTrace() for better performance. See http://stackoverflow.com/a/2347878/3134602
  */
 object LogUtils {
     @JvmStatic
@@ -31,7 +29,7 @@ object LogUtils {
      * Note: This method is always called from the child of [ChromeDevtoolsDomain]
      */
     fun getChromeDevToolsMethodName(): String {
-        val stackTraceElements = Thread.currentThread().stackTrace
+        val stackTraceElements = Throwable().stackTrace
 
         val chromeDevtoolsStackTraceElement = stackTraceElements
                 .find {
@@ -50,7 +48,7 @@ object LogUtils {
     }
 
     fun logChromeDevToolsCalled() {
-        if (!enabled) return;
+        if (!enabled) return
 
         try {
             logger.i(TAG, "Calling " + getChromeDevToolsMethodName())

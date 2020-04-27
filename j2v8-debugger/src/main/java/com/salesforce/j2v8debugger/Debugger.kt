@@ -14,7 +14,6 @@ import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
-import com.facebook.stetho.websocket.CloseCodes
 import com.salesforce.j2v8debugger.utils.LogUtils
 import com.salesforce.j2v8debugger.utils.logger
 import org.json.JSONObject
@@ -124,14 +123,14 @@ class Debugger(
      * Invoked when scripts are changed. Currently closes Chrome DevTools.
      */
     internal fun onScriptsChanged() {
-        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
-        connectedPeer?.webSocket?.close(CloseCodes.NORMAL_CLOSURE, "on scripts changed");
+        scriptSourceProvider.allScriptIds
+            .map { ScriptParsedEvent(it) }
+            .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
     }
 
     @ChromeDevtoolsMethod
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
         v8Debugger.setDebuggerConnected(false)
-        //xxx: figure-out why and when this method could be called
     }
 
     @ChromeDevtoolsMethod
@@ -157,8 +156,6 @@ class Debugger(
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
         v8Debugger.queueV8Message(Protocol.Debugger.Pause, params)
-
-        //check what's needed here
     }
 
     @ChromeDevtoolsMethod
@@ -215,7 +212,7 @@ class Debugger(
         //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
         // -> do best effort to remove breakpoint when executor is free
         runStethoAndV8Safely {
-            v8Executor!!.execute {
+            v8Executor?.execute {
                 v8Debugger.dispatchMessage(
                     Protocol.Debugger.RemoveBreakpoint,
                     params.toString()

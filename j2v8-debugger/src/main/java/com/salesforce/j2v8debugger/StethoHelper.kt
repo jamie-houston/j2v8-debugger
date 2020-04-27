@@ -116,7 +116,6 @@ object StethoHelper {
      * New content will be displayed when it will be opened again.
      */
     fun notifyScriptsChanged() {
-        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
         debugger?.onScriptsChanged()
     }
 

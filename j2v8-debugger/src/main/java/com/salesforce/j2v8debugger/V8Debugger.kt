@@ -91,8 +91,7 @@ class V8Debugger: V8InspectorDelegate {
                 val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
                 chromeMessageQueue[responseMethod] = response
             } else if (responseMethod == Protocol.Debugger.Paused) {
-                // TODO this replace could inadvertently replace other strings in the params that match
-                val updatedScript = responseParams.toString().replace("\"$v8ScriptId\"", "\"$chromeScriptName\"")
+                val updatedScript = responseParams.toString().replace("\"scriptId\":\"$v8ScriptId\"", "\"scriptId\":\"$chromeScriptName\"")
                 chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
             }
         }
