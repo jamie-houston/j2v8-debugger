@@ -24,7 +24,7 @@ import kotlin.collections.LinkedHashMap
 class V8Debugger: V8InspectorDelegate {
 
     private var v8Inspector: V8Inspector? = null
-    private var isDebuggerConnected = false
+    private var debuggerState = DebuggerState.Disconnected
     private val chromeMessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject>())
     private val v8MessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject?>())
 
@@ -33,25 +33,23 @@ class V8Debugger: V8InspectorDelegate {
     private var v8ScriptId: String? = null
     private lateinit var chromeScriptName: String
 
-   /**
-     * @return new or existing v8 debugger object.
-     * Must be released before [V8.release] is called.
-     */
     private fun getOrCreateV8Inspector(v8: V8): V8Inspector {
         if (v8Inspector == null) {
-            v8Inspector = V8Inspector.createV8Inspector(v8, this, "test")
+            v8Inspector = V8Inspector.createV8Inspector(v8, this, TAG)
         }
+
         return v8Inspector ?: throw IllegalStateException("Unable to create V8Inspector")
     }
 
     override fun waitFrontendMessageOnPause() {
-        if (!isDebuggerConnected) {
+        if (debuggerState != DebuggerState.Paused) {
             // If we haven't attached to chrome yet, resume code (or else we're stuck)
+            logger.d(TAG, "Debugger paused without connection.  Resuming J2V8")
             dispatchMessage(Protocol.Debugger.Resume)
         } else {
             if (v8MessageQueue.any()) {
                 for ((k, v) in v8MessageQueue) {
-                    logger.d(TAG, "*** sending v8 $k with $v")
+                    logger.d(TAG, "Sending v8 $k with $v")
                     dispatchMessage(k, v.toString())
                 }
                 v8MessageQueue.clear()
@@ -59,7 +57,7 @@ class V8Debugger: V8InspectorDelegate {
             if (chromeMessageQueue.any()) {
                 val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                 for ((k, v) in chromeMessageQueue) {
-                    logger.d(TAG, "*** sending chrome $k with $v")
+                    logger.d(TAG, "Sending chrome $k with $v")
                     networkPeerManager?.sendNotificationToPeers(k, v)
                 }
                 chromeMessageQueue.clear()
@@ -68,7 +66,7 @@ class V8Debugger: V8InspectorDelegate {
     }
 
     override fun onResponse(p0: String?) {
-        logger.d(TAG, "*** onResponse $p0")
+        logger.d(TAG, "onResponse $p0")
         val message = JSONObject(p0)
         if (message.has("id")) {
             // This is a command response
@@ -91,14 +89,16 @@ class V8Debugger: V8InspectorDelegate {
                 val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
                 chromeMessageQueue[responseMethod] = response
             } else if (responseMethod == Protocol.Debugger.Paused) {
-                // TODO this replace could inadvertently replace other strings in the params that match
-                val updatedScript = responseParams.toString().replace("\"$v8ScriptId\"", "\"$chromeScriptName\"")
+                debuggerState = DebuggerState.Paused
+                val updatedScript = responseParams.toString().replace("\"scriptId\":\"$v8ScriptId\"", "\"scriptId\":\"$chromeScriptName\"")
                 chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
+            } else if (responseMethod == Protocol.Debugger.Resumed){
+                debuggerState = DebuggerState.Connected
             }
         }
     }
 
-    fun dispatchMessage(method: String, params: String? = null) {
+    private fun dispatchMessage(method: String, params: String? = null) {
         val messageId: Int
         val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
         if (pendingMessage != null) {
@@ -162,17 +162,26 @@ class V8Debugger: V8InspectorDelegate {
     }
 
     fun setDebuggerConnected(isConnected: Boolean) {
-        isDebuggerConnected = isConnected
+        debuggerState = if (isConnected) DebuggerState.Connected else DebuggerState.Disconnected
     }
 
-    fun queueV8Message(message: String, params: JSONObject?) {
-        v8MessageQueue[message] = params
+    fun queueV8Message(message: String, params: JSONObject?, runOnlyWhenPaused: Boolean = false) {
+        if (debuggerState == DebuggerState.Paused) {
+            v8MessageQueue[message] = params
+        } else if (!runOnlyWhenPaused) {
+            dispatchMessage(message, params.toString())
+        }
     }
 
-
-    data class PendingResponse(val method: String, var messageId: Int) {
+    private data class PendingResponse(val method: String, var messageId: Int) {
         var response: String? = null
         var pending = false
+    }
+
+    private enum class DebuggerState {
+        Disconnected,
+        Paused,
+        Connected
     }
 
     companion object {

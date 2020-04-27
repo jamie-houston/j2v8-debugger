@@ -8,13 +8,11 @@
 
 package com.salesforce.j2v8debugger
 
-import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
-import com.facebook.stetho.websocket.CloseCodes
 import com.salesforce.j2v8debugger.utils.LogUtils
 import com.salesforce.j2v8debugger.utils.logger
 import org.json.JSONObject
@@ -35,11 +33,6 @@ class Debugger(
 ) : FacebookDebuggerStub() {
     var dtoMapper: ObjectMapper = ObjectMapper()
 
-    //xxx: consider using WeakReference
-    /** Must be called on [v8Executor]]. */
-    var v8Inspector: V8Inspector? = null
-        private set
-
     /**
      * Needed as @ChromeDevtoolsMethod methods are called on Stetho threads, but not v8 thread.
      *
@@ -55,13 +48,12 @@ class Debugger(
         const val TAG = "j2v8-debugger"
     }
 
-    fun initialize(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
+    fun initialize(v8Executor: ExecutorService) {
         this.v8Executor = v8Executor
-        this.v8Inspector = v8Inspector
     }
 
     private fun validateV8Initialized() {
-        if (v8Executor == null || v8Inspector == null) {
+        if (v8Executor == null) {
             throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
         }
     }
@@ -96,7 +88,7 @@ class Debugger(
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
         // This was changed from skipped to skip
         // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
-        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")))
+        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
     }
 
     private fun onDisconnect() {
@@ -104,10 +96,10 @@ class Debugger(
         runStethoSafely {
             breakpointsAdded.forEach { breakpointId ->
                 v8Executor?.execute {
-                    v8Debugger.dispatchMessage(
+                    v8Debugger.queueV8Message(
                         Protocol.Debugger.RemoveBreakpoint,
-                        "{\"breakpointId\": \"$breakpointId\"}"
-                    )
+                        JSONObject().put("breakpointId", breakpointId))
+
                 }
             }
             breakpointsAdded.clear()
@@ -124,14 +116,14 @@ class Debugger(
      * Invoked when scripts are changed. Currently closes Chrome DevTools.
      */
     internal fun onScriptsChanged() {
-        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
-        connectedPeer?.webSocket?.close(CloseCodes.NORMAL_CLOSURE, "on scripts changed");
+        scriptSourceProvider.allScriptIds
+            .map { ScriptParsedEvent(it) }
+            .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
     }
 
     @ChromeDevtoolsMethod
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
         v8Debugger.setDebuggerConnected(false)
-        //xxx: figure-out why and when this method could be called
     }
 
     @ChromeDevtoolsMethod
@@ -151,29 +143,27 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.Resume, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.Resume, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.Pause, params)
-
-        //check what's needed here
+        v8Debugger.queueV8Message(Protocol.Debugger.Pause, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepOver, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepOver, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepInto, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepInto, params, true)
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Debugger.queueV8Message(Protocol.Debugger.StepOut, params)
+        v8Debugger.queueV8Message(Protocol.Debugger.StepOut, params, true)
     }
 
     @ChromeDevtoolsMethod
@@ -186,27 +176,21 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
+    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
         return runStethoAndV8Safely {
-            val responseFuture = v8Executor!!.submit(Callable {
+            val responseFuture = v8Executor?.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
-                val breakpointParams =
-                    JSONObject().put("lineNumber", request.lineNumber).put("url", request.scriptId)
-                        .put("columnNumber", request.columnNumber)
-                v8Debugger.dispatchMessage(
+                request.url = request.scriptId
+                v8Debugger.queueV8Message(
                     Protocol.Debugger.SetBreakpointByUrl,
-                    breakpointParams.toString()
+                    dtoMapper.convertValue(request, JSONObject::class.java)
                 )
-                val breakpointId =
-                    "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
-                breakpointsAdded.add(breakpointId)
-                SetBreakpointByUrlResponse(
-                    breakpointId,
-                    Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!)
-                )
+                val response = SetBreakpointByUrlResponse(request)
+                breakpointsAdded.add(response.breakpointId)
+                response
             })
 
-            responseFuture.get()
+            responseFuture?.get()
         }
     }
 
@@ -215,10 +199,10 @@ class Debugger(
         //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
         // -> do best effort to remove breakpoint when executor is free
         runStethoAndV8Safely {
-            v8Executor!!.execute {
-                v8Debugger.dispatchMessage(
+            v8Executor?.execute {
+                v8Debugger.queueV8Message(
                     Protocol.Debugger.RemoveBreakpoint,
-                    params.toString()
+                    params
                 )
             }
         }
@@ -226,14 +210,16 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
-        return SimpleIntegerResult(32)
+    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject) {
+        runStethoAndV8Safely {
+            v8Executor?.execute { v8Debugger.queueV8Message(Protocol.Debugger.SetAsyncCallStackDepth, params) }
+        }
     }
 
     @ChromeDevtoolsMethod
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject) {
         runStethoAndV8Safely {
-            v8Executor?.execute { v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointsActive, params.toString()) }
+            v8Executor?.execute { v8Debugger.queueV8Message(Protocol.Debugger.SetBreakpointsActive, params) }
         }
     }
 

@@ -9,7 +9,6 @@
 package com.salesforce.j2v8debugger
 
 import com.salesforce.j2v8debugger.utils.logger
-import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import io.mockk.Runs
@@ -53,12 +52,11 @@ class DebuggerTest {
 
     @Test
     fun `works when V8 initialized`() {
-        val v8InspectorMock = mockk<V8Inspector>(relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
         val v8Debugger = mockk<V8Debugger>(relaxed = true)
         val debugger = Debugger(mockk(relaxed = true), v8Debugger)
-        debugger.initialize(v8InspectorMock, directExecutor)
+        debugger.initialize(directExecutor)
 
         val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
@@ -75,7 +73,7 @@ class DebuggerTest {
 
         verify (exactly = 1){mapperMock.convertValue(eq(jsonParamsMock), eq(requestStub::class.java))}
 
-        verify { v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointByUrl, any()) }
+        verify { v8Debugger.queueV8Message(Protocol.Debugger.SetBreakpointByUrl, any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
@@ -141,13 +139,12 @@ class DebuggerTest {
 
     @Test
     fun `getScriptSource returns result from scriptSourceProvider`(){
-        val v8InspectorMock = mockk<V8Inspector>(relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
         val scriptId = UUID.randomUUID().toString()
         val scriptSourceProvider = mockk<ScriptSourceProvider>()
         val v8Debugger = mockk<V8Debugger>(relaxed = true)
         val debugger = Debugger(scriptSourceProvider, v8Debugger)
-        debugger.initialize(v8InspectorMock, directExecutor)
+        debugger.initialize(directExecutor)
         val requestJson = JSONObject().put("scriptId", scriptId)
         val scriptResponse = UUID.randomUUID().toString()
 

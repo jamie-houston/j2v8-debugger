@@ -116,7 +116,6 @@ object StethoHelper {
      * New content will be displayed when it will be opened again.
      */
     fun notifyScriptsChanged() {
-        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
         debugger?.onScriptsChanged()
     }
 
@@ -128,10 +127,9 @@ object StethoHelper {
         val v8DebuggerInitialized = v8Inspector != null && v8Executor != null
 
         if (v8DebuggerInitialized && chromeDebuggerAttached) {
-            v8Executor!!.execute {
+            v8Executor?.execute {
                 bindV8DebuggerToChromeDebugger(
                     debugger!!,
-                    v8Inspector!!,
                     v8Executor
                 )
             }
@@ -144,10 +142,9 @@ object StethoHelper {
      */
     private fun bindV8DebuggerToChromeDebugger(
         chromeDebugger: Debugger,
-        v8Inspector: V8Inspector,
         v8Executor: ExecutorService
     ) {
-        chromeDebugger.initialize(v8Inspector, v8Executor)
+        chromeDebugger.initialize(v8Executor)
     }
 
     /**
