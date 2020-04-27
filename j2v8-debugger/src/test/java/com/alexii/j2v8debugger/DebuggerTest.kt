@@ -1,14 +1,6 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
+package com.alexii.j2v8debugger
 
-package com.salesforce.j2v8debugger
-
-import com.salesforce.j2v8debugger.utils.logger
+import com.alexii.j2v8debugger.utils.logger
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import io.mockk.Runs

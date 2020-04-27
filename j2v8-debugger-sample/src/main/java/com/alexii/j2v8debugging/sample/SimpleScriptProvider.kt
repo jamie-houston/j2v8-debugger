@@ -1,16 +1,8 @@
-/*
- * Copyright (c) 2020, Salesforce.com, inc.
- * All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause
- * For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
- *
- */
+package com.alexii.j2v8debugging.sample
 
-package com.salesforce.j2v8debugging.sample
-
-import com.salesforce.j2v8debugger.ScriptSourceProvider
+import com.alexii.j2v8debugger.ScriptSourceProvider
 import java.text.DateFormat
-import java.util.*
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
