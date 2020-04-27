@@ -53,12 +53,11 @@ class DebuggerTest {
 
     @Test
     fun `works when V8 initialized`() {
-        val v8InspectorMock = mockk<V8Inspector>(relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
         val v8Debugger = mockk<V8Debugger>(relaxed = true)
         val debugger = Debugger(mockk(relaxed = true), v8Debugger)
-        debugger.initialize(v8InspectorMock, directExecutor)
+        debugger.initialize(directExecutor)
 
         val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
@@ -141,13 +140,12 @@ class DebuggerTest {
 
     @Test
     fun `getScriptSource returns result from scriptSourceProvider`(){
-        val v8InspectorMock = mockk<V8Inspector>(relaxed = true)
         val directExecutor = MoreExecutors.newDirectExecutorService()
         val scriptId = UUID.randomUUID().toString()
         val scriptSourceProvider = mockk<ScriptSourceProvider>()
         val v8Debugger = mockk<V8Debugger>(relaxed = true)
         val debugger = Debugger(scriptSourceProvider, v8Debugger)
-        debugger.initialize(v8InspectorMock, directExecutor)
+        debugger.initialize(directExecutor)
         val requestJson = JSONObject().put("scriptId", scriptId)
         val scriptResponse = UUID.randomUUID().toString()
 

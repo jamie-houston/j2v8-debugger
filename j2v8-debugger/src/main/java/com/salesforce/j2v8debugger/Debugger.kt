@@ -8,7 +8,6 @@
 
 package com.salesforce.j2v8debugger
 
-import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
@@ -34,11 +33,6 @@ class Debugger(
 ) : FacebookDebuggerStub() {
     var dtoMapper: ObjectMapper = ObjectMapper()
 
-    //xxx: consider using WeakReference
-    /** Must be called on [v8Executor]]. */
-    var v8Inspector: V8Inspector? = null
-        private set
-
     /**
      * Needed as @ChromeDevtoolsMethod methods are called on Stetho threads, but not v8 thread.
      *
@@ -54,13 +48,12 @@ class Debugger(
         const val TAG = "j2v8-debugger"
     }
 
-    fun initialize(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
+    fun initialize(v8Executor: ExecutorService) {
         this.v8Executor = v8Executor
-        this.v8Inspector = v8Inspector
     }
 
     private fun validateV8Initialized() {
-        if (v8Executor == null || v8Inspector == null) {
+        if (v8Executor == null) {
             throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
         }
     }
@@ -101,12 +94,12 @@ class Debugger(
     private fun onDisconnect() {
         logger.d(TAG, "Disconnecting from Chrome")
         runStethoSafely {
-            breakpointsAdded.forEach { breakpointId ->
-                v8Executor?.execute {
-                    v8Debugger.dispatchMessage(
+            v8Executor?.execute {
+                breakpointsAdded.forEach { breakpointId ->
+                    v8Debugger.queueV8Message(
                         Protocol.Debugger.RemoveBreakpoint,
-                        "{\"breakpointId\": \"$breakpointId\"}"
-                    )
+                        JSONObject().put("breakpointId", breakpointId))
+
                 }
             }
             breakpointsAdded.clear()
@@ -190,9 +183,9 @@ class Debugger(
                 val breakpointParams =
                     JSONObject().put("lineNumber", request.lineNumber).put("url", request.scriptId)
                         .put("columnNumber", request.columnNumber)
-                v8Debugger.dispatchMessage(
+                v8Debugger.queueV8Message(
                     Protocol.Debugger.SetBreakpointByUrl,
-                    breakpointParams.toString()
+                    breakpointParams
                 )
                 val breakpointId =
                     "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
@@ -213,9 +206,9 @@ class Debugger(
         // -> do best effort to remove breakpoint when executor is free
         runStethoAndV8Safely {
             v8Executor?.execute {
-                v8Debugger.dispatchMessage(
+                v8Debugger.queueV8Message(
                     Protocol.Debugger.RemoveBreakpoint,
-                    params.toString()
+                    params
                 )
             }
         }
@@ -230,7 +223,7 @@ class Debugger(
     @ChromeDevtoolsMethod
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject) {
         runStethoAndV8Safely {
-            v8Executor?.execute { v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointsActive, params.toString()) }
+            v8Executor?.execute { v8Debugger.queueV8Message(Protocol.Debugger.SetBreakpointsActive, params) }
         }
     }
 

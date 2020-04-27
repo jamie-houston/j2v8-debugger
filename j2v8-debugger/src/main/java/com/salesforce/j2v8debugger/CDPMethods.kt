@@ -18,6 +18,7 @@ object Protocol {
         val Paused = "$domain.paused"
         val RemoveBreakpoint = "$domain.removeBreakpoint"
         val Resume = "$domain.resume"
+        val Resumed = "$domain.resumed"
         val ScriptParsed = "$domain.scriptParsed"
         val SetAsyncCallStackDepth = "$domain.setAsyncCallStackDepth"
         val SetBreakpointsActive = "$domain.setBreakpointsActive"
