@@ -117,8 +117,6 @@ class Debugger(
 
             //avoid app being freezed when no debugging happening anymore
             v8Debugger.setDebuggerConnected(false)
-
-//                breakpointsAdded.forEach{breakpointId -> v8Debugger.queueV8Message(Protocol.Debugger.RemoveBreakpoint, JSONObject().put("breakpointId", breakpointId))}
         }
     }
 
