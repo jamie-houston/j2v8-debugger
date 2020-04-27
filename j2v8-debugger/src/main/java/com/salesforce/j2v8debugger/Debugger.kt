@@ -94,8 +94,8 @@ class Debugger(
     private fun onDisconnect() {
         logger.d(TAG, "Disconnecting from Chrome")
         runStethoSafely {
-            v8Executor?.execute {
-                breakpointsAdded.forEach { breakpointId ->
+            breakpointsAdded.forEach { breakpointId ->
+                v8Executor?.execute {
                     v8Debugger.queueV8Message(
                         Protocol.Debugger.RemoveBreakpoint,
                         JSONObject().put("breakpointId", breakpointId))
@@ -178,8 +178,9 @@ class Debugger(
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
         return runStethoAndV8Safely {
-            val responseFuture = v8Executor!!.submit(Callable {
+            val responseFuture = v8Executor?.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
+                request.url = request.scriptId
                 v8Debugger.queueV8Message(
                     Protocol.Debugger.SetBreakpointByUrl,
                     dtoMapper.convertValue(request, JSONObject::class.java)
@@ -189,7 +190,7 @@ class Debugger(
                 response
             })
 
-            responseFuture.get()
+            responseFuture?.get()
         }
     }
 

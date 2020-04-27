@@ -42,12 +42,9 @@ class GetScriptSourceResponse(
 ) : JsonRpcResult
 
 class SetBreakpointByUrlRequest : JsonRpcResult {
-//    private var _scriptId: String? = null
     @field:JsonProperty
+    @JvmField
     var url: String? = null
-        set(value) {
-            field = urlToScriptId(value)
-        }
 
     @field:JsonProperty
     @JvmField
@@ -66,7 +63,6 @@ class SetBreakpointByUrlRequest : JsonRpcResult {
     val scriptId get() = urlToScriptId(url)
 }
 
-
 class SetBreakpointByUrlResponse(
     request: SetBreakpointByUrlRequest) : JsonRpcResult {
     @field:JsonProperty @JvmField
@@ -76,14 +72,6 @@ class SetBreakpointByUrlResponse(
     @JvmField
     val locations: List<Location> = listOf(Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
 }
-
-class RemoveBreakpointRequest : JsonRpcResult {
-    //script id
-    @field:JsonProperty
-    @JvmField
-    var breakpointId: String? = null
-}
-
 
 data class Location(
     @field:JsonProperty @JvmField

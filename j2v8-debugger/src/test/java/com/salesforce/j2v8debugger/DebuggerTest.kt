@@ -9,7 +9,6 @@
 package com.salesforce.j2v8debugger
 
 import com.salesforce.j2v8debugger.utils.logger
-import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import io.mockk.Runs
@@ -74,7 +73,7 @@ class DebuggerTest {
 
         verify (exactly = 1){mapperMock.convertValue(eq(jsonParamsMock), eq(requestStub::class.java))}
 
-        verify { v8Debugger.dispatchMessage(Protocol.Debugger.SetBreakpointByUrl, any()) }
+        verify { v8Debugger.queueV8Message(Protocol.Debugger.SetBreakpointByUrl, any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
