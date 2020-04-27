@@ -8,6 +8,7 @@
 
 package com.salesforce.j2v8debugger
 
+import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
@@ -41,10 +42,12 @@ class GetScriptSourceResponse(
 ) : JsonRpcResult
 
 class SetBreakpointByUrlRequest : JsonRpcResult {
-    //script id
+//    private var _scriptId: String? = null
     @field:JsonProperty
-    @JvmField
     var url: String? = null
+        set(value) {
+            field = urlToScriptId(value)
+        }
 
     @field:JsonProperty
     @JvmField
@@ -65,14 +68,13 @@ class SetBreakpointByUrlRequest : JsonRpcResult {
 
 
 class SetBreakpointByUrlResponse(
+    request: SetBreakpointByUrlRequest) : JsonRpcResult {
     @field:JsonProperty @JvmField
-    val breakpointId: String,
+    val breakpointId = "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
 
-    location: Location
-) : JsonRpcResult {
     @field:JsonProperty
     @JvmField
-    val locations: List<Location> = listOf(location)
+    val locations: List<Location> = listOf(Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
 }
 
 class RemoveBreakpointRequest : JsonRpcResult {

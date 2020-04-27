@@ -176,24 +176,17 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
+    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
         return runStethoAndV8Safely {
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
-                val breakpointParams =
-                    JSONObject().put("lineNumber", request.lineNumber).put("url", request.scriptId)
-                        .put("columnNumber", request.columnNumber)
                 v8Debugger.queueV8Message(
                     Protocol.Debugger.SetBreakpointByUrl,
-                    breakpointParams
+                    dtoMapper.convertValue(request, JSONObject::class.java)
                 )
-                val breakpointId =
-                    "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
-                breakpointsAdded.add(breakpointId)
-                SetBreakpointByUrlResponse(
-                    breakpointId,
-                    Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!)
-                )
+                val response = SetBreakpointByUrlResponse(request)
+                breakpointsAdded.add(response.breakpointId)
+                response
             })
 
             responseFuture.get()
