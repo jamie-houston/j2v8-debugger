@@ -210,8 +210,10 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
-        return SimpleIntegerResult(32)
+    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject) {
+        runStethoAndV8Safely {
+            v8Executor?.execute { v8Debugger.queueV8Message(Protocol.Debugger.SetAsyncCallStackDepth, params) }
+        }
     }
 
     @ChromeDevtoolsMethod

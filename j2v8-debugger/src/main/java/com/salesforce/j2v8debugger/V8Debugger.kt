@@ -168,10 +168,8 @@ class V8Debugger: V8InspectorDelegate {
     fun queueV8Message(message: String, params: JSONObject?, runOnlyWhenPaused: Boolean = false) {
         if (debuggerState == DebuggerState.Paused) {
             v8MessageQueue[message] = params
-        } else {
-            if (!runOnlyWhenPaused) {
-                dispatchMessage(message, params.toString())
-            }
+        } else if (!runOnlyWhenPaused) {
+            dispatchMessage(message, params.toString())
         }
     }
 
