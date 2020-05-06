@@ -12,7 +12,7 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
  *
  * See http://stackoverflow.com/a/11306854/3134602
  */
-object LogUtils {
+internal object LogUtils {
     @JvmStatic
     var enabled = false
 

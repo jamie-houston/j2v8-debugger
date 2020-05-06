@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.utils.LogUtils
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
@@ -116,9 +117,10 @@ class V8Debugger: V8InspectorDelegate {
      *
      * NOTE: Should be declared as V8 class extensions when will be allowed (https://youtrack.jetbrains.com/issue/KT-11968)
      */
-    fun createDebuggableV8Runtime(v8Executor: ExecutorService): Future<V8> {
+    fun createDebuggableV8Runtime(v8Executor: ExecutorService, globalAlias: String = "", enableLogging: Boolean = true): Future<V8> {
+        LogUtils.enabled = enableLogging
         return v8Executor.submit(Callable {
-            val runtime = V8.createV8Runtime()
+            val runtime = V8.createV8Runtime(globalAlias)
             val inspector = getOrCreateV8Inspector(runtime)
 
             // Default Chrome DevTool protocol messages

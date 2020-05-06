@@ -2,10 +2,8 @@ package com.alexii.j2v8debugging.sample
 
 import android.app.Activity
 import android.app.Application
-import com.alexii.j2v8debugger.BuildConfig
 import com.alexii.j2v8debugger.ScriptSourceProvider
 import com.alexii.j2v8debugger.StethoHelper
-import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugging.sample.di.DaggerAppComponent
 import com.facebook.stetho.Stetho
 import com.alexii.j2v8debugger.V8Debugger
@@ -28,8 +26,6 @@ class App : Application(), HasActivityInjector {
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())
-
-        if (BuildConfig.DEBUG) LogUtils.enabled = true
 
         DaggerAppComponent
                 .builder()
