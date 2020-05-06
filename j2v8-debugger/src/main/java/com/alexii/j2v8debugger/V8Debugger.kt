@@ -22,8 +22,7 @@ class V8Debugger: V8InspectorDelegate {
 
     private val pendingMessageQueue = Collections.synchronizedList(mutableListOf<PendingResponse>())
     private val nextDispatchId = AtomicInteger(0)
-    private var v8ScriptId: String? = null
-    private lateinit var chromeScriptName: String
+    private val v8ScriptMap = mutableMapOf<String, String>()
 
     private fun getOrCreateV8Inspector(v8: V8): V8Inspector {
         if (v8Inspector == null) {
@@ -73,16 +72,19 @@ class V8Debugger: V8InspectorDelegate {
             if (responseMethod == Protocol.Debugger.ScriptParsed) {
                 if (responseParams.optString("url").isNotEmpty()) {
                     // Get the V8 Script ID to map to the Chrome ScipeId
-                    v8ScriptId = responseParams.optString("scriptId")
+                    v8ScriptMap[responseParams.optString("scriptId")] = responseParams.getString("url")
                 }
             } else if (responseMethod == Protocol.Debugger.BreakpointResolved) {
                 val location = responseParams.getJSONObject("location")
-                location.put("scriptId", chromeScriptName)
+                location.put("scriptId", v8ScriptMap[location.getString("scriptId")])
                 val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
                 chromeMessageQueue[responseMethod] = response
             } else if (responseMethod == Protocol.Debugger.Paused) {
                 debuggerState = DebuggerState.Paused
-                val updatedScript = responseParams.toString().replace("\"scriptId\":\"$v8ScriptId\"", "\"scriptId\":\"$chromeScriptName\"")
+                val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
+                val updatedScript = responseParams.toString().replace(regex) {
+                    "\"scriptId\":\"${v8ScriptMap[it.groups[1]?.value]}\""
+                }
                 chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
             } else if (responseMethod == Protocol.Debugger.Resumed){
                 debuggerState = DebuggerState.Connected
@@ -114,9 +116,7 @@ class V8Debugger: V8InspectorDelegate {
      *
      * NOTE: Should be declared as V8 class extensions when will be allowed (https://youtrack.jetbrains.com/issue/KT-11968)
      */
-    fun createDebuggableV8Runtime(v8Executor: ExecutorService, scriptName: String): Future<V8> {
-        chromeScriptName = scriptName
-
+    fun createDebuggableV8Runtime(v8Executor: ExecutorService): Future<V8> {
         return v8Executor.submit(Callable {
             val runtime = V8.createV8Runtime()
             val inspector = getOrCreateV8Inspector(runtime)
