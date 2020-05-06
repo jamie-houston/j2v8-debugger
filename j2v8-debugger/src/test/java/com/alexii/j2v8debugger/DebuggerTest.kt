@@ -55,17 +55,19 @@ class DebuggerTest {
         requestStub.lineNumber = Random(100).nextInt()
         requestStub.columnNumber = Random(100).nextInt()
 
-        val jsonParamsMock = mockk<JSONObject>()
-        val mapperMock = mockk<ObjectMapper> {
-            every { convertValue(eq(jsonParamsMock), eq(requestStub::class.java)) } returns  requestStub
+        val jsonParams = JSONObject()
+        val jsonMappedResult = JSONObject()
+        val mapperMock = mockk<ObjectMapper>(relaxed = true) {
+            every { convertValue(jsonParams, eq(SetBreakpointByUrlRequest::class.java)) } returns  requestStub
+            every { convertValue(requestStub, eq(JSONObject::class.java)) } returns jsonMappedResult
         }
         debugger.dtoMapper = mapperMock
 
-        val response = debugger.setBreakpointByUrl(mockk(), jsonParamsMock)
+        val response = debugger.setBreakpointByUrl(mockk(), jsonParams)
 
-        verify (exactly = 1){mapperMock.convertValue(eq(jsonParamsMock), eq(requestStub::class.java))}
+        verify (exactly = 1){mapperMock.convertValue(eq(jsonParams), eq(requestStub::class.java))}
 
-        verify { v8Debugger.queueV8Message(Protocol.Debugger.SetBreakpointByUrl, any()) }
+        verify { v8Debugger.queueV8Message(message = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
@@ -121,7 +123,7 @@ class DebuggerTest {
         val debugger = Debugger(mockk(), v8Debugger)
         val jsonResult = slot<JSONObject>()
         every {
-            v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, capture(jsonResult))
+            v8Debugger.queueV8Message(message = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
         } just Runs
 
         debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))
