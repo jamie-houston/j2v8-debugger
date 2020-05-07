@@ -13,12 +13,9 @@ import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
 /**
- * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
- *
- * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
- *  Otherwise setting breakpoint, etc. makes no effect.
- *  Above is also true for the case when debugger is paused due to pause/resume implementation as thread suspension.
- */ @Suppress("UNUSED_PARAMETER", "unused")
+ * Debugger Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
+ */
+@Suppress("UNUSED_PARAMETER", "unused")
 class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider,
     private val v8Debugger: V8Debugger
@@ -36,51 +33,14 @@ class Debugger(
 
     private val breakpointsAdded = mutableListOf<String>()
 
-    companion object {
-        const val TAG = "j2v8-debugger"
-    }
-
     fun initialize(v8Executor: ExecutorService) {
         this.v8Executor = v8Executor
     }
 
     private fun validateV8Initialized() {
         if (v8Executor == null) {
-            throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
+            throw IllegalStateException("Unable to call method before v8 has been initialized")
         }
-    }
-
-    @ChromeDevtoolsMethod
-    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely {
-            connectedPeer = peer
-
-            scriptSourceProvider.allScriptIds
-                .map { ScriptParsedEvent(it) }
-                .forEach { peer.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
-
-            peer.registerDisconnectReceiver(::onDisconnect)
-        }
-        v8Debugger.setDebuggerConnected(true)
-    }
-
-    @ChromeDevtoolsMethod
-    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?) {
-        // Ignore
-    }
-
-    @ChromeDevtoolsMethod
-    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
-        val method = Protocol.Debugger.EvaluateOnCallFrame
-        val result = v8Debugger.getV8Result(method, params)
-        return EvaluateOnCallFrameResult(JSONObject(result))
-    }
-
-    @ChromeDevtoolsMethod
-    fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
-        // This was changed from skipped to skip
-        // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
-        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
     }
 
     private fun onDisconnect() {
@@ -104,13 +64,36 @@ class Debugger(
         }
     }
 
-    /**
-     * Invoked when scripts are changed. Currently closes Chrome DevTools.
-     */
     internal fun onScriptsChanged() {
         scriptSourceProvider.allScriptIds
             .map { ScriptParsedEvent(it) }
             .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
+    }
+
+    @ChromeDevtoolsMethod
+    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+        runStethoSafely {
+            connectedPeer = peer
+
+            onScriptsChanged()
+
+            peer.registerDisconnectReceiver(::onDisconnect)
+        }
+        v8Debugger.setDebuggerConnected(true)
+    }
+
+    @ChromeDevtoolsMethod
+    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
+        val method = Protocol.Debugger.EvaluateOnCallFrame
+        val result = v8Debugger.getV8Result(method, params)
+        return EvaluateOnCallFrameResult(JSONObject(result))
+    }
+
+    @ChromeDevtoolsMethod
+    fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
+        // This was changed from skipped to skip
+        // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
+        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
     }
 
     @ChromeDevtoolsMethod
@@ -242,5 +225,9 @@ class Debugger(
 
             action()
         }
+    }
+
+    companion object {
+        const val TAG = "Debugger"
     }
 }

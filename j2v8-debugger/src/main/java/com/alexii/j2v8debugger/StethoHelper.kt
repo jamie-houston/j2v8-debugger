@@ -30,7 +30,7 @@ object StethoHelper {
      */
     var scriptsPathPrefix = ""
         set(value) {
-            field = "/" + value + "/"
+            field = "/$value/"
         }
 
     /**

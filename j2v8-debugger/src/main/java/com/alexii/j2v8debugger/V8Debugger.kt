@@ -87,7 +87,7 @@ class V8Debugger: V8InspectorDelegate {
                     "\"scriptId\":\"${v8ScriptMap[it.groups[1]?.value]}\""
                 }
                 chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
-            } else if (responseMethod == Protocol.Debugger.Resumed){
+            } else if (responseMethod == Protocol.Debugger.Resumed) {
                 debuggerState = DebuggerState.Connected
             }
         }
@@ -117,7 +117,7 @@ class V8Debugger: V8InspectorDelegate {
      *
      * NOTE: Should be declared as V8 class extensions when will be allowed (https://youtrack.jetbrains.com/issue/KT-11968)
      */
-    fun createDebuggableV8Runtime(v8Executor: ExecutorService, globalAlias: String = "", enableLogging: Boolean = true): Future<V8> {
+    fun createDebuggableV8Runtime(v8Executor: ExecutorService, globalAlias: String = "global", enableLogging: Boolean = true): Future<V8> {
         LogUtils.enabled = enableLogging
         return v8Executor.submit(Callable {
             val runtime = V8.createV8Runtime(globalAlias)
@@ -149,7 +149,6 @@ class V8Debugger: V8InspectorDelegate {
         pendingMessageQueue.remove(pendingMessage)
         return pendingMessage.response
     }
-
 
     fun releaseV8Debugger() {
         v8Inspector = null

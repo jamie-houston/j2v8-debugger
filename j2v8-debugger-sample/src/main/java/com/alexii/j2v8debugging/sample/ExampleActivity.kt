@@ -60,7 +60,7 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun initDebuggableV8(): Future<V8> {
-        return v8Debugger.createDebuggableV8Runtime(v8Executor)
+        return v8Debugger.createDebuggableV8Runtime(v8Executor, "demo", true)
     }
 
     override fun onDestroy() {
