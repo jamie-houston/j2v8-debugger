@@ -13,7 +13,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  * Runtime Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  */
 @Suppress("UNUSED_PARAMETER", "unused")
-class Runtime(private val v8Debugger: V8Debugger, replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
+class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     private val adaptee = FacebookRuntimeBase(replFactory)
 
     @ChromeDevtoolsMethod

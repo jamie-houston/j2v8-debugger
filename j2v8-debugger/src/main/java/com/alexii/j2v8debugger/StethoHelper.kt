@@ -2,7 +2,6 @@ package com.alexii.j2v8debugger
 
 import android.content.Context
 import com.eclipsesource.v8.V8
-import com.eclipsesource.v8.inspector.V8Inspector
 import com.facebook.stetho.InspectorModulesProvider
 import com.facebook.stetho.Stetho
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
@@ -17,7 +16,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 object StethoHelper {
     private var debugger: Debugger? = null
 
-    private var v8InspectorRef: WeakReference<V8Inspector>? = null
+    private var v8MessengerRef: WeakReference<V8Messenger>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
 
     /**
@@ -83,7 +82,7 @@ object StethoHelper {
             }
         }
 
-        debugger = Debugger(scriptSourceProvider, v8Debugger)
+        debugger = Debugger(scriptSourceProvider)
         inspectorModules.add(debugger!!)
         inspectorModules.add(Runtime(v8Debugger, factory))
 
@@ -95,8 +94,8 @@ object StethoHelper {
     /**
      * @param v8Executor executor, where V8 should be previously initialized and further will be called on.
      */
-    fun initializeWithV8Debugger(v8Inspector: V8Inspector, v8Executor: ExecutorService) {
-        v8InspectorRef = WeakReference(v8Inspector)
+    fun initializeWithV8Messenger(v8Messenger: V8Messenger, v8Executor: ExecutorService) {
+        v8MessengerRef = WeakReference(v8Messenger)
         v8ExecutorRef = WeakReference(v8Executor)
 
         bindV8ToChromeDebuggerIfReady()
@@ -113,15 +112,15 @@ object StethoHelper {
     private fun bindV8ToChromeDebuggerIfReady() {
         val chromeDebuggerAttached = debugger != null
 
-        val v8Inspector = v8InspectorRef?.get()
+        val v8Messenger = v8MessengerRef?.get()
         val v8Executor = v8ExecutorRef?.get()
-        val v8DebuggerInitialized = v8Inspector != null && v8Executor != null
 
-        if (v8DebuggerInitialized && chromeDebuggerAttached) {
-            v8Executor?.execute {
+        if (v8Messenger != null && v8Executor != null && chromeDebuggerAttached) {
+            v8Executor.execute {
                 bindV8DebuggerToChromeDebugger(
-                    debugger!!,
-                    v8Executor
+                        debugger!!,
+                        v8Executor,
+                        v8Messenger
                 )
             }
         }
@@ -133,9 +132,10 @@ object StethoHelper {
      */
     private fun bindV8DebuggerToChromeDebugger(
         chromeDebugger: Debugger,
-        v8Executor: ExecutorService
+        v8Executor: ExecutorService,
+        v8Messenger: V8Messenger
     ) {
-        chromeDebugger.initialize(v8Executor)
+        chromeDebugger.initialize(v8Executor, v8Messenger)
     }
 
     /**
