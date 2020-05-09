@@ -15,6 +15,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 
 object StethoHelper {
     private var debugger: Debugger? = null
+    private var runtime: Runtime? = null
 
     private var v8MessengerRef: WeakReference<V8Messenger>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
@@ -38,21 +39,19 @@ object StethoHelper {
     @JvmStatic
     fun defaultInspectorModulesProvider(
         context: Context,
-        scriptSourceProvider: ScriptSourceProvider,
-        v8Debugger: V8Debugger
+        scriptSourceProvider: ScriptSourceProvider
     ): InspectorModulesProvider {
-        return InspectorModulesProvider { getInspectorModules(context, scriptSourceProvider, v8Debugger) }
+        return InspectorModulesProvider { getInspectorModules(context, scriptSourceProvider) }
     }
 
     @JvmOverloads
     fun getInspectorModules(
         context: Context,
         scriptSourceProvider: ScriptSourceProvider,
-        v8Debugger: V8Debugger,
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
         return try {
-            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, v8Debugger, factory)
+            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, factory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.e(
                 Debugger.TAG,
@@ -67,7 +66,6 @@ object StethoHelper {
     fun getDefaultInspectorModulesWithDebugger(
         context: Context,
         scriptSourceProvider: ScriptSourceProvider,
-        v8Debugger: V8Debugger,
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
         val defaultInspectorModules = getDefaultInspectorModules(context, factory)
@@ -83,8 +81,9 @@ object StethoHelper {
         }
 
         debugger = Debugger(scriptSourceProvider)
+        runtime = Runtime(factory)
         inspectorModules.add(debugger!!)
-        inspectorModules.add(Runtime(v8Debugger, factory))
+        inspectorModules.add(runtime!!)
 
         bindV8ToChromeDebuggerIfReady()
 
@@ -110,7 +109,7 @@ object StethoHelper {
     }
 
     private fun bindV8ToChromeDebuggerIfReady() {
-        val chromeDebuggerAttached = debugger != null
+        val chromeDebuggerAttached = debugger != null && runtime != null
 
         val v8Messenger = v8MessengerRef?.get()
         val v8Executor = v8ExecutorRef?.get()
@@ -119,6 +118,7 @@ object StethoHelper {
             v8Executor.execute {
                 bindV8DebuggerToChromeDebugger(
                         debugger!!,
+                        runtime!!,
                         v8Executor,
                         v8Messenger
                 )
@@ -127,15 +127,17 @@ object StethoHelper {
     }
 
     /**
-     * Shoulds be called when both Chrome debugger and V8 debugger is ready
+     * Should be called when both Chrome debugger and V8 debugger is ready
      *  (When Chrome DevTools UI is open and V8 is created in debug mode with debugger object).
      */
     private fun bindV8DebuggerToChromeDebugger(
         chromeDebugger: Debugger,
+        chromeRuntime: Runtime,
         v8Executor: ExecutorService,
         v8Messenger: V8Messenger
     ) {
         chromeDebugger.initialize(v8Executor, v8Messenger)
+        chromeRuntime.initialize(v8Messenger)
     }
 
     /**

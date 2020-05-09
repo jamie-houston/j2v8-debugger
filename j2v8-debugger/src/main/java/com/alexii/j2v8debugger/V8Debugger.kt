@@ -8,7 +8,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 
-class V8Debugger {
+object V8Debugger {
     /**
      * Utility, which simplifies configuring V8 for debugging support and creation of new instance.
      * Creates V8 runtime, v8 debugger and binds it to Stetho.
@@ -43,9 +43,5 @@ class V8Debugger {
     fun releaseV8Debugger() {
         // TODO: Determine how to handle or if we still need to
 //        v8Inspector = null
-    }
-
-    companion object {
-        const val TAG = "V8Debugger"
     }
 }

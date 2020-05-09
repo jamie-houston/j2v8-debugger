@@ -38,10 +38,4 @@ class AppModule {
     fun provideV8ExecutorService(): ExecutorService {
         return Executors.newSingleThreadExecutor();
     }
-
-    @Singleton
-    @Provides
-    fun providesV8Debugger(): V8Debugger {
-        return V8Debugger()
-    }
 }

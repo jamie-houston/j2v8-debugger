@@ -45,12 +45,12 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     override fun waitFrontendMessageOnPause() {
         if (debuggerState != DebuggerState.Paused) {
             // If we haven't attached to chrome yet, resume code (or else we're stuck)
-            logger.d(V8Debugger.TAG, "Debugger paused without connection.  Resuming J2V8")
+            logger.d(TAG, "Debugger paused without connection.  Resuming J2V8")
             dispatchMessage(Protocol.Debugger.Resume)
         } else {
             if (v8MessageQueue.any()) {
                 for ((k, v) in v8MessageQueue) {
-                    logger.d(V8Debugger.TAG, "Sending v8 $k with $v")
+                    logger.d(TAG, "Sending v8 $k with $v")
                     dispatchMessage(k, v.toString())
                 }
                 v8MessageQueue.clear()
@@ -58,7 +58,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             if (chromeMessageQueue.any()) {
                 val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
                 for ((k, v) in chromeMessageQueue) {
-                    logger.d(V8Debugger.TAG, "Sending chrome $k with $v")
+                    logger.d(TAG, "Sending chrome $k with $v")
                     networkPeerManager?.sendNotificationToPeers(k, v)
                 }
                 chromeMessageQueue.clear()
@@ -67,7 +67,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     override fun onResponse(p0: String?) {
-        logger.d(V8Debugger.TAG, "onResponse $p0")
+        logger.d(TAG, "onResponse $p0")
         val message = JSONObject(p0)
         if (message.has("id")) {
             // This is a command response
@@ -125,7 +125,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             messageId = nextDispatchId.incrementAndGet()
         }
         val message = "{\"id\":$messageId,\"method\":\"$method\", \"params\": ${params ?: "{}"}}"
-        logger.d(V8Debugger.TAG, "dispatching $message")
+        logger.d(TAG, "dispatching $message")
         v8Inspector?.dispatchProtocolMessage(message)
     }
 

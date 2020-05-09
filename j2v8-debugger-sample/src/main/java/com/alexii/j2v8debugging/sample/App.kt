@@ -6,7 +6,6 @@ import com.alexii.j2v8debugger.ScriptSourceProvider
 import com.alexii.j2v8debugger.StethoHelper
 import com.alexii.j2v8debugging.sample.di.DaggerAppComponent
 import com.facebook.stetho.Stetho
-import com.alexii.j2v8debugger.V8Debugger
 import dagger.android.AndroidInjector
 import dagger.android.DispatchingAndroidInjector
 import dagger.android.HasActivityInjector
@@ -19,9 +18,6 @@ class App : Application(), HasActivityInjector {
 
     @Inject
     lateinit var scriptProvider: ScriptSourceProvider
-
-    @Inject
-    lateinit var v8Debugger: V8Debugger
 
     override fun onCreate() {
         super.onCreate()
@@ -36,7 +32,7 @@ class App : Application(), HasActivityInjector {
         val context = this
         val initializer = Stetho.newInitializerBuilder(context)
                 .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
-                .enableWebKitInspector(StethoHelper.defaultInspectorModulesProvider(context, scriptProvider, v8Debugger))
+                .enableWebKitInspector(StethoHelper.defaultInspectorModulesProvider(context, scriptProvider))
                 .build()
         Stetho.initialize(initializer)
 
@@ -46,5 +42,4 @@ class App : Application(), HasActivityInjector {
     override fun activityInjector(): AndroidInjector<Activity>? {
         return dispatchingAndroidInjector
     }
-
 }
