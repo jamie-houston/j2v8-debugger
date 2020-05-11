@@ -12,13 +12,17 @@ import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
+import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
+import com.facebook.stetho.json.ObjectMapper
+import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashMap
 
 class V8Messenger(v8: V8): V8InspectorDelegate {
+    private val dtoMapper: ObjectMapper = ObjectMapper()
     private val chromeMessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject>())
     private val v8ScriptMap = mutableMapOf<String, String>()
     private val v8MessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject?>())
@@ -68,27 +72,37 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
 
     override fun onResponse(p0: String?) {
         logger.d(TAG, "onResponse $p0")
-        val message = JSONObject(p0)
-        if (message.has("id")) {
+        val message = dtoMapper.convertValue(JSONObject(p0), V8Response::class.java)
+        if (message.isResponse) {
             // This is a command response
-            val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.getInt("id") }
+            val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.id }
             if (pendingMessage != null) {
-                pendingMessage.response = message.optJSONObject("result")?.optString("result")
+                pendingMessage.response = message.result?.optString("result")
             }
-        } else if (message.has("method")) {
+        } else {
             // This is an event
-            val responseParams = message.optJSONObject("params")
-            val responseMethod = message.optString("method")
+            val responseParams = message.params
+            val responseMethod = message.method
             if (responseMethod == Protocol.Debugger.ScriptParsed) {
-                if (responseParams.optString("url").isNotEmpty()) {
+                val scriptParsedEvent = dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
+                if (scriptParsedEvent.url.isNotEmpty()) {
                     // Get the V8 Script ID to map to the Chrome ScipeId
-                    v8ScriptMap[responseParams.optString("scriptId")] = responseParams.getString("url")
+                    v8ScriptMap[scriptParsedEvent.scriptId] = scriptParsedEvent.url
                 }
             } else if (responseMethod == Protocol.Debugger.BreakpointResolved) {
-                val location = responseParams.getJSONObject("location")
-                location.put("scriptId", v8ScriptMap[location.getString("scriptId")])
-                val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
-                chromeMessageQueue[responseMethod] = response
+                val breakpointResolvedEvent = dtoMapper.convertValue(responseParams, BreakpointResolvedEvent::class.java)
+                val location = breakpointResolvedEvent.location
+                val response = BreakpointResolvedEvent().also {
+                    it.breakpointId = breakpointResolvedEvent.breakpointId
+                    it.location = LocationResponse().also {
+                        it.scriptId = v8ScriptMap[location?.scriptId]
+                        it.lineNumber = location?.lineNumber
+                        it.columnNumber = location?.columnNumber
+                    }
+                }
+//                location.put("scriptId", v8ScriptMap[location.getString("scriptId")])
+//                val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
+                chromeMessageQueue[responseMethod] = dtoMapper.convertValue(response, JSONObject::class.java)
             } else if (responseMethod == Protocol.Debugger.Paused) {
                 debuggerState = DebuggerState.Paused
                 val regex = "\"scriptId\":\"(\\d+)\"".toRegex()

@@ -15,11 +15,21 @@ class EvaluateOnCallFrameResult(
  */
 class ScriptParsedEvent(
     @field:JsonProperty @JvmField
-    val scriptId: String?,
+    val scriptId: String,
 
     @field:JsonProperty @JvmField
-    val url: String? = scriptIdToUrl(scriptId)
+    val url: String = scriptIdToUrl(scriptId)
 )
+
+class ScriptParsedEventRequest : JsonRpcResult{
+    @field:JsonProperty
+    @JvmField
+    var scriptId: String = ""
+
+    @field:JsonProperty
+    @JvmField
+    var url: String = ""
+}
 
 class GetScriptSourceRequest : JsonRpcResult {
     @field:JsonProperty
@@ -74,6 +84,50 @@ data class Location(
     @field:JsonProperty @JvmField
     val columnNumber: Int
 )
+
+class LocationResponse {
+    @field:JsonProperty
+    @JvmField
+    var scriptId: String? = null
+
+    @field:JsonProperty
+    @JvmField
+    var lineNumber: Int? = null
+
+    @field:JsonProperty
+    @JvmField
+    var columnNumber: Int? = null
+}
+
+class V8Response : JsonRpcResult {
+    val isResponse by lazy { (id != null) }
+
+    @field:JsonProperty
+    @JvmField
+    var id: Int? = null
+
+    @field:JsonProperty
+    @JvmField
+    var method: String? = null
+
+    @field:JsonProperty
+    @JvmField
+    var result: JSONObject? = null
+
+    @field:JsonProperty
+    @JvmField
+    var params: JSONObject? = null
+}
+
+class BreakpointResolvedEvent: JsonRpcResult {
+    @field:JsonProperty
+    @JvmField
+    var breakpointId: String? = null
+
+    @field:JsonProperty
+    @JvmField
+    var location: LocationResponse? = null
+}
 
 class GetPropertiesResult : JSONObject(), JsonRpcResult
 
