@@ -80,40 +80,55 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
                 pendingMessage.response = message.result?.optString("result")
             }
         } else {
-            // This is an event
             val responseParams = message.params
             val responseMethod = message.method
-            if (responseMethod == Protocol.Debugger.ScriptParsed) {
-                val scriptParsedEvent = dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
-                if (scriptParsedEvent.url.isNotEmpty()) {
-                    // Get the V8 Script ID to map to the Chrome ScipeId
-                    v8ScriptMap[scriptParsedEvent.scriptId] = scriptParsedEvent.url
-                }
-            } else if (responseMethod == Protocol.Debugger.BreakpointResolved) {
-                val breakpointResolvedEvent = dtoMapper.convertValue(responseParams, BreakpointResolvedEvent::class.java)
-                val location = breakpointResolvedEvent.location
-                val response = BreakpointResolvedEvent().also {
-                    it.breakpointId = breakpointResolvedEvent.breakpointId
-                    it.location = LocationResponse().also {
-                        it.scriptId = v8ScriptMap[location?.scriptId]
-                        it.lineNumber = location?.lineNumber
-                        it.columnNumber = location?.columnNumber
-                    }
-                }
-//                location.put("scriptId", v8ScriptMap[location.getString("scriptId")])
-//                val response = JSONObject().put("breakpointId", responseParams.getString("breakpointId")).put("location", location)
-                chromeMessageQueue[responseMethod] = dtoMapper.convertValue(response, JSONObject::class.java)
-            } else if (responseMethod == Protocol.Debugger.Paused) {
-                debuggerState = DebuggerState.Paused
-                val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
-                val updatedScript = responseParams.toString().replace(regex) {
-                    "\"scriptId\":\"${v8ScriptMap[it.groups[1]?.value]}\""
-                }
-                chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
-            } else if (responseMethod == Protocol.Debugger.Resumed) {
-                debuggerState = DebuggerState.Connected
+
+            val functionMap = mapOf<String, (JSONObject?, String?) -> Unit>(
+                Pair(Protocol.Debugger.ScriptParsed, ::handleScriptParsedEvent),
+                Pair(Protocol.Debugger.BreakpointResolved, ::handleBreakpointResolvedEvent),
+                Pair(Protocol.Debugger.Paused, ::handleDebuggerPausedEvent),
+                Pair(Protocol.Debugger.Resumed, ::handleDebuggerResumedEvent)
+            )
+
+            functionMap[responseMethod]?.invoke(responseParams, responseMethod)
+        }
+    }
+
+    private fun handleDebuggerResumedEvent(responseParams: JSONObject?, responseMethod: String?) {
+        debuggerState = DebuggerState.Connected
+    }
+
+    private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
+
+        debuggerState = DebuggerState.Paused
+        val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
+        val updatedScript = responseParams.toString().replace(regex) {
+            "\"scriptId\":\"${v8ScriptMap[it.groups[1]?.value]}\""
+        }
+        chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
+    }
+
+    private fun handleScriptParsedEvent(responseParams: JSONObject?, responseMethod: String?) {
+
+        val scriptParsedEvent = dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
+        if (scriptParsedEvent.url.isNotEmpty()) {
+            // Get the V8 Script ID to map to the Chrome ScipeId
+            v8ScriptMap[scriptParsedEvent.scriptId] = scriptParsedEvent.url
+        }
+    }
+
+    private fun handleBreakpointResolvedEvent(responseParams: JSONObject?, responseMethod: String?) {
+        val breakpointResolvedEvent = dtoMapper.convertValue(responseParams, BreakpointResolvedEvent::class.java)
+        val location = breakpointResolvedEvent.location
+        val response = BreakpointResolvedEvent().also {
+            it.breakpointId = breakpointResolvedEvent.breakpointId
+            it.location = LocationResponse().also {
+                it.scriptId = v8ScriptMap[location?.scriptId]
+                it.lineNumber = location?.lineNumber
+                it.columnNumber = location?.columnNumber
             }
         }
+        chromeMessageQueue[responseMethod] = dtoMapper.convertValue(response, JSONObject::class.java)
     }
 
     fun sendMessage(message: String, params: JSONObject? = null, runOnlyWhenPaused: Boolean = false) {
