@@ -16,7 +16,7 @@ import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebugge
  * Debugger Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  */
 @Suppress("UNUSED_PARAMETER", "unused")
-class Debugger(
+internal class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
 ) : FacebookDebuggerStub() {
     var dtoMapper: ObjectMapper = ObjectMapper()
@@ -152,7 +152,7 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
+    internal fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
         return runStethoAndV8Safely {
             val responseFuture = v8Executor?.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)

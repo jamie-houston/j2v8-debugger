@@ -1,27 +1,28 @@
 package com.alexii.j2v8debugger
 
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
+import com.facebook.stetho.inspector.protocol.module.Runtime
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 
-class EvaluateOnCallFrameResult(
-    @field:JsonProperty
-    @JvmField
-    val result: JSONObject? = null
+internal class EvaluateOnCallFrameResult(
+        @field:JsonProperty
+        @JvmField
+        val result: JSONObject? = null
 ) : JsonRpcResult
 
 /**
  * Fired as the result of [Debugger.enable]
  */
-class ScriptParsedEvent(
-    @field:JsonProperty @JvmField
-    val scriptId: String,
+internal class ScriptParsedEvent(
+        @field:JsonProperty @JvmField
+        val scriptId: String,
 
-    @field:JsonProperty @JvmField
-    val url: String = scriptIdToUrl(scriptId)
+        @field:JsonProperty @JvmField
+        val url: String = scriptIdToUrl(scriptId)
 )
 
-class ScriptParsedEventRequest : JsonRpcResult{
+internal class ScriptParsedEventRequest : JsonRpcResult {
     @field:JsonProperty
     @JvmField
     var scriptId: String = ""
@@ -31,18 +32,18 @@ class ScriptParsedEventRequest : JsonRpcResult{
     var url: String = ""
 }
 
-class GetScriptSourceRequest : JsonRpcResult {
+internal class GetScriptSourceRequest : JsonRpcResult {
     @field:JsonProperty
     @JvmField
     var scriptId: String? = null
 }
 
-class GetScriptSourceResponse(
-    @field:JsonProperty @JvmField
-    val scriptSource: String
+internal class GetScriptSourceResponse(
+        @field:JsonProperty @JvmField
+        val scriptSource: String
 ) : JsonRpcResult
 
-class SetBreakpointByUrlRequest : JsonRpcResult {
+internal class SetBreakpointByUrlRequest : JsonRpcResult {
     @field:JsonProperty
     @JvmField
     var url: String? = null
@@ -64,9 +65,10 @@ class SetBreakpointByUrlRequest : JsonRpcResult {
     val scriptId get() = urlToScriptId(url)
 }
 
-class SetBreakpointByUrlResponse(
-    request: SetBreakpointByUrlRequest) : JsonRpcResult {
-    @field:JsonProperty @JvmField
+internal class SetBreakpointByUrlResponse(
+        request: SetBreakpointByUrlRequest) : JsonRpcResult {
+    @field:JsonProperty
+    @JvmField
     val breakpointId = "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
 
     @field:JsonProperty
@@ -74,18 +76,18 @@ class SetBreakpointByUrlResponse(
     val locations: List<Location> = listOf(Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
 }
 
-data class Location(
-    @field:JsonProperty @JvmField
-    val scriptId: String,
+internal data class Location(
+        @field:JsonProperty @JvmField
+        val scriptId: String,
 
-    @field:JsonProperty @JvmField
-    val lineNumber: Int,
+        @field:JsonProperty @JvmField
+        val lineNumber: Int,
 
-    @field:JsonProperty @JvmField
-    val columnNumber: Int
+        @field:JsonProperty @JvmField
+        val columnNumber: Int
 )
 
-class LocationResponse {
+internal class LocationResponse {
     @field:JsonProperty
     @JvmField
     var scriptId: String? = null
@@ -99,7 +101,7 @@ class LocationResponse {
     var columnNumber: Int? = null
 }
 
-class V8Response : JsonRpcResult {
+internal class V8Response : JsonRpcResult {
     val isResponse by lazy { (id != null) }
 
     @field:JsonProperty
@@ -119,7 +121,7 @@ class V8Response : JsonRpcResult {
     var params: JSONObject? = null
 }
 
-class BreakpointResolvedEvent: JsonRpcResult {
+internal class BreakpointResolvedEvent : JsonRpcResult {
     @field:JsonProperty
     @JvmField
     var breakpointId: String? = null
@@ -129,7 +131,50 @@ class BreakpointResolvedEvent: JsonRpcResult {
     var location: LocationResponse? = null
 }
 
-class GetPropertiesResult : JSONObject(), JsonRpcResult
+internal class GetPropertiesResult : JSONObject(), JsonRpcResult
+
+internal data class PausedEvent @JvmOverloads constructor(
+        @field:JsonProperty @JvmField
+        val callFrames: List<CallFrame>,
+
+        @field:JsonProperty @JvmField
+        val reason: String = "other"
+)
+
+internal data class CallFrame @JvmOverloads constructor(
+        @field:JsonProperty @JvmField
+        val callFrameId: String,
+
+        @field:JsonProperty @JvmField
+        val functionName: String,
+
+        @field:JsonProperty @JvmField
+        val location: LocationResponse,
+
+        /** JavaScript script name or url. */
+        @field:JsonProperty @JvmField
+        val url: String,
+
+        @field:JsonProperty @JvmField
+        val scopeChain: List<Scope>,
+
+        //xxx: check how and whether it's wotking with this
+        @field:JsonProperty @JvmField
+        val `this`: Runtime.RemoteObject? = null
+)
+
+internal data class Scope(
+        /** one of: global, local, with, closure, catch, block, script, eval, module. */
+        @field:JsonProperty @JvmField
+        val type: String,
+        /**
+         * Object representing the scope.
+         * For global and with scopes it represents the actual object;
+         * for the rest of the scopes, it is artificial transient object enumerating scope variables as its properties.
+         */
+        @field:JsonProperty @JvmField
+        val `object`: Runtime.RemoteObject
+)
 
 //users of the lib can change this value
 private val scriptsDomain = "http://app/"

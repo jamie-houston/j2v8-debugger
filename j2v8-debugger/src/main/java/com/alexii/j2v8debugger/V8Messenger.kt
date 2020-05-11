@@ -12,10 +12,8 @@ import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
 import com.eclipsesource.v8.inspector.V8InspectorDelegate
-import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.facebook.stetho.json.ObjectMapper
-import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
@@ -84,10 +82,10 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             val responseMethod = message.method
 
             val functionMap = mapOf<String, (JSONObject?, String?) -> Unit>(
-                Pair(Protocol.Debugger.ScriptParsed, ::handleScriptParsedEvent),
-                Pair(Protocol.Debugger.BreakpointResolved, ::handleBreakpointResolvedEvent),
-                Pair(Protocol.Debugger.Paused, ::handleDebuggerPausedEvent),
-                Pair(Protocol.Debugger.Resumed, ::handleDebuggerResumedEvent)
+                    Pair(Protocol.Debugger.ScriptParsed, ::handleScriptParsedEvent),
+                    Pair(Protocol.Debugger.BreakpointResolved, ::handleBreakpointResolvedEvent),
+                    Pair(Protocol.Debugger.Paused, ::handleDebuggerPausedEvent),
+                    Pair(Protocol.Debugger.Resumed, ::handleDebuggerResumedEvent)
             )
 
             functionMap[responseMethod]?.invoke(responseParams, responseMethod)
@@ -99,7 +97,6 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
-
         debuggerState = DebuggerState.Paused
         val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
         val updatedScript = responseParams.toString().replace(regex) {
@@ -109,7 +106,6 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     private fun handleScriptParsedEvent(responseParams: JSONObject?, responseMethod: String?) {
-
         val scriptParsedEvent = dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
         if (scriptParsedEvent.url.isNotEmpty()) {
             // Get the V8 Script ID to map to the Chrome ScipeId

@@ -31,7 +31,7 @@ class DebuggerTest {
     @Test
     fun `on enable all scripts retrieved`() {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
-        val debugger = Debugger(scriptSourceProviderMock, mockk(relaxed = true))
+        val debugger = Debugger(scriptSourceProviderMock)
 
         debugger.enable(mockk(relaxed = true), null)
 
@@ -46,9 +46,9 @@ class DebuggerTest {
     fun `works when V8 initialized`() {
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(mockk(relaxed = true), v8Debugger)
-        debugger.initialize(directExecutor)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk(relaxed = true))
+        debugger.initialize(directExecutor, v8Messenger)
 
         val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
@@ -67,7 +67,7 @@ class DebuggerTest {
 
         verify (exactly = 1){mapperMock.convertValue(eq(jsonParams), eq(requestStub::class.java))}
 
-        verify { v8Debugger.queueV8Message(message = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
+        verify { v8Messenger.sendMessage(message = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
@@ -81,7 +81,7 @@ class DebuggerTest {
 
     @Test
     fun `No exceptions thrown when V8 not initialized`() {
-        val debugger = Debugger(mockk(), mockk())
+        val debugger = Debugger(mockk())
 
 
         val requestMock = mockk<SetBreakpointByUrlRequest>()
@@ -102,13 +102,14 @@ class DebuggerTest {
 
     @Test
     fun `evaluateOnCallFrame gets V8Result`(){
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(mockk(), v8Debugger)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk())
+        debugger.initialize(mockk(), v8Messenger)
         val jsonParamsMock = mockk<JSONObject>()
         val jsonResult = JSONObject().put(UUID.randomUUID().toString(), UUID.randomUUID().toString())
 
         coEvery {
-            v8Debugger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
+            v8Messenger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
         }.returns(jsonResult.toString())
 
 
@@ -119,11 +120,12 @@ class DebuggerTest {
 
     @Test
     fun `setSkipAllPauses replaces skip with skipped`(){
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(mockk(), v8Debugger)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk())
+        debugger.initialize(mockk(), v8Messenger)
         val jsonResult = slot<JSONObject>()
         every {
-            v8Debugger.queueV8Message(message = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
+            v8Messenger.sendMessage(message = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
         } just Runs
 
         debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))
@@ -136,9 +138,9 @@ class DebuggerTest {
         val directExecutor = MoreExecutors.newDirectExecutorService()
         val scriptId = UUID.randomUUID().toString()
         val scriptSourceProvider = mockk<ScriptSourceProvider>()
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(scriptSourceProvider, v8Debugger)
-        debugger.initialize(directExecutor)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(scriptSourceProvider)
+        debugger.initialize(directExecutor, v8Messenger)
         val requestJson = JSONObject().put("scriptId", scriptId)
         val scriptResponse = UUID.randomUUID().toString()
 

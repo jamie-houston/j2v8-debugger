@@ -1,13 +1,10 @@
 package com.alexii.j2v8debugger.utils
 
-import com.alexii.j2v8debugger.BuildConfig
 import com.alexii.j2v8debugger.Debugger.Companion.TAG
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 
 /**
- *
- *
  * Calling this method is "expensive" operation. Make sure, that it's done rare or only in [BuildConfig.DEBUG]
  *
  * See http://stackoverflow.com/a/11306854/3134602

@@ -48,13 +48,13 @@ class StethoHelperTest {
         every { contextMock.applicationContext } returns contextMock
         StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock, mockk())
 
-        val v8InspectorMock = mockk<V8Inspector>()
+        val v8Messenger = mockk<V8Messenger>()
         val v8ExecutorServiceMock = mockk<ExecutorService> {
             every {
                 execute(any())
             } answers { arg<Runnable>(0).run() }
         }
-        StethoHelper.initializeWithV8Debugger(v8InspectorMock, v8ExecutorServiceMock)
+        StethoHelper.initializeWithV8Messenger(v8Messenger, v8ExecutorServiceMock)
 
         verify(exactly = 1) { v8ExecutorServiceMock.execute(any()) }
     }
@@ -62,11 +62,11 @@ class StethoHelperTest {
     @Test
     @Disabled("This test won't work due to Debugger being a static property on StethoHelper (and set in the previous test)")
     fun `initialized when v8 created before Stetho`() {
-        val v8InspectorMock = mockk<V8Inspector>()
+        val v8Messenger = mockk<V8Messenger>()
         val v8ExecutorServiceMock = mockk<ExecutorService> {
             every { execute(any()) } answers { arg<Runnable>(0).run() }
         }
-        StethoHelper.initializeWithV8Debugger(v8InspectorMock, v8ExecutorServiceMock)
+        StethoHelper.initializeWithV8Messenger(v8Messenger, v8ExecutorServiceMock)
 
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> {}
         val contextMock = mockk<Application> {}
