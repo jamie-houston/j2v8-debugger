@@ -33,6 +33,14 @@ object StethoHelper {
             field = "/$value/"
         }
 
+    fun initializeDebugger(context: Context, scriptSourceProvider: ScriptSourceProvider){
+        val initializer = Stetho.newInitializerBuilder(context)
+                .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
+                .enableWebKitInspector(defaultInspectorModulesProvider(context, scriptSourceProvider))
+                .build()
+        Stetho.initialize(initializer)
+    }
+
     /**
      * @return Similar to [Stetho.defaultInspectorModulesProvider] but contains [Debugger] for [V8]
      */
