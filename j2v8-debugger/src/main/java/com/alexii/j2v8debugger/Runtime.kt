@@ -7,7 +7,6 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
 /**
@@ -25,7 +24,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         val method = Protocol.Runtime.GetProperties
-        val result = v8Messenger?.sendMessage(method, params)
+        val result = v8Messenger?.getV8Result(method, params)
         val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
         return jsonResult as JsonRpcResult
     }
