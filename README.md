@@ -51,7 +51,7 @@ Use `V8Debugger.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
     val debuggableV8Runtime : Future<V8> = V8Debugger.createDebuggableV8Runtime(v8Executor, globalAlias, enableLogging)
 ```
 
-See [sample project](https://github.com/alexii/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
+See [sample project](https://github.com/AlexTrotsenko/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
 
 ### Notes regarding J2V8 threads.
 - Creation and clean-up of V8 should run on fixed V8 thread.
