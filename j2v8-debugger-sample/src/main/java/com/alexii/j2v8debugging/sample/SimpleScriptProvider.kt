@@ -20,11 +20,11 @@ class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
         dateString = DateFormat.getTimeInstance().format(Date())
     }
 
-    override val allScriptIds = listOf(scriptName)
+    override val allScriptIds = listOf("${scriptName}0", "${scriptName}1")
 
     override fun getSource(scriptId: String): String {
         val jsScript = ("""
-            |var globalHi = "hi"
+            |var globalHi = "hi from $scriptId"
             |
             |function main(payloadObject) {
             |  var hello = 'hello, ';
@@ -42,8 +42,6 @@ class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
             |})
         """).trimMargin()
 
-        if (scriptId == scriptName) return jsScript
-
-        return "JS source not found :("
+        return jsScript
     }
 }

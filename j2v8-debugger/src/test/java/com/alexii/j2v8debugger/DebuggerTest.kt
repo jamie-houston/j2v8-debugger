@@ -1,11 +1,9 @@
 package com.alexii.j2v8debugger
 
-import com.alexii.j2v8debugger.utils.logger
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import io.mockk.Runs
 import io.mockk.called
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -14,24 +12,16 @@ import io.mockk.verify
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.random.Random
 
 class DebuggerTest {
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        fun setUpClass() {
-            logger = mockk(relaxed = true)
-        }
-    }
 
     @Test
     fun `on enable all scripts retrieved`() {
         val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
-        val debugger = Debugger(scriptSourceProviderMock, mockk(relaxed = true))
+        val debugger = Debugger(scriptSourceProviderMock)
 
         debugger.enable(mockk(relaxed = true), null)
 
@@ -46,26 +36,28 @@ class DebuggerTest {
     fun `works when V8 initialized`() {
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(mockk(relaxed = true), v8Debugger)
-        debugger.initialize(directExecutor)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk(relaxed = true))
+        debugger.initialize(directExecutor, v8Messenger)
 
         val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
         requestStub.lineNumber = Random(100).nextInt()
         requestStub.columnNumber = Random(100).nextInt()
 
-        val jsonParamsMock = mockk<JSONObject>()
-        val mapperMock = mockk<ObjectMapper> {
-            every { convertValue(eq(jsonParamsMock), eq(requestStub::class.java)) } returns  requestStub
+        val jsonParams = JSONObject()
+        val jsonMappedResult = JSONObject()
+        val mapperMock = mockk<ObjectMapper>(relaxed = true) {
+            every { convertValue(jsonParams, eq(SetBreakpointByUrlRequest::class.java)) } returns  requestStub
+            every { convertValue(requestStub, eq(JSONObject::class.java)) } returns jsonMappedResult
         }
         debugger.dtoMapper = mapperMock
 
-        val response = debugger.setBreakpointByUrl(mockk(), jsonParamsMock)
+        val response = debugger.setBreakpointByUrl(mockk(), jsonParams)
 
-        verify (exactly = 1){mapperMock.convertValue(eq(jsonParamsMock), eq(requestStub::class.java))}
+        verify (exactly = 1){mapperMock.convertValue(eq(jsonParams), eq(requestStub::class.java))}
 
-        verify { v8Debugger.queueV8Message(Protocol.Debugger.SetBreakpointByUrl, any()) }
+        verify { v8Messenger.sendMessage(message = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
@@ -79,8 +71,7 @@ class DebuggerTest {
 
     @Test
     fun `No exceptions thrown when V8 not initialized`() {
-        val debugger = Debugger(mockk(), mockk())
-
+        val debugger = Debugger(mockk())
 
         val requestMock = mockk<SetBreakpointByUrlRequest>()
         val jsonParamsMock = mockk<JSONObject>()
@@ -100,13 +91,14 @@ class DebuggerTest {
 
     @Test
     fun `evaluateOnCallFrame gets V8Result`(){
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(mockk(), v8Debugger)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk())
+        debugger.initialize(mockk(), v8Messenger)
         val jsonParamsMock = mockk<JSONObject>()
         val jsonResult = JSONObject().put(UUID.randomUUID().toString(), UUID.randomUUID().toString())
 
-        coEvery {
-            v8Debugger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
+        every {
+            v8Messenger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
         }.returns(jsonResult.toString())
 
 
@@ -117,11 +109,12 @@ class DebuggerTest {
 
     @Test
     fun `setSkipAllPauses replaces skip with skipped`(){
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(mockk(), v8Debugger)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk())
+        debugger.initialize(mockk(), v8Messenger)
         val jsonResult = slot<JSONObject>()
         every {
-            v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, capture(jsonResult))
+            v8Messenger.sendMessage(message = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
         } just Runs
 
         debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))
@@ -134,9 +127,9 @@ class DebuggerTest {
         val directExecutor = MoreExecutors.newDirectExecutorService()
         val scriptId = UUID.randomUUID().toString()
         val scriptSourceProvider = mockk<ScriptSourceProvider>()
-        val v8Debugger = mockk<V8Debugger>(relaxed = true)
-        val debugger = Debugger(scriptSourceProvider, v8Debugger)
-        debugger.initialize(directExecutor)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(scriptSourceProvider)
+        debugger.initialize(directExecutor, v8Messenger)
         val requestJson = JSONObject().put("scriptId", scriptId)
         val scriptResponse = UUID.randomUUID().toString()
 

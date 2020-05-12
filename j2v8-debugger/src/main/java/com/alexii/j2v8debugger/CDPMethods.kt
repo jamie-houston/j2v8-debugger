@@ -1,6 +1,9 @@
 package com.alexii.j2v8debugger
 
 object Protocol {
+    /***
+     * Methods in https://chromedevtools.github.io/devtools-protocol/tot/Debugger/
+     */
     object Debugger {
         private val domain = "Debugger"
         val BreakpointResolved = "$domain.breakpointResolved"
@@ -21,6 +24,10 @@ object Protocol {
         val StepOut = "$domain.stepOut"
         val StepOver = "$domain.stepOver"
     }
+
+    /***
+     * Methods in https://chromedevtools.github.io/devtools-protocol/tot/Runtime/
+     */
     object Runtime{
         private val domain = "Runtime"
         val Enable = "$domain.enable"

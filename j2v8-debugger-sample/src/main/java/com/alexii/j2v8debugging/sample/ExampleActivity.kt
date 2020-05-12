@@ -35,6 +35,7 @@ class ExampleActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val scriptName = "hello-world"
+        var scriptPostfix = 1
         AndroidInjection.inject(this)
         updateUserToRandom()
         v8Future = initDebuggableV8(scriptName)
@@ -44,10 +45,12 @@ class ExampleActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
 
         fab.setOnClickListener { view ->
-            val jsScript = simpleScriptProvider.getSource(scriptName)
+            scriptPostfix = 1 - scriptPostfix
+            val scriptToDebug = "${scriptName}${scriptPostfix}"
+            val jsScript = simpleScriptProvider.getSource(scriptToDebug)
 
             v8Executor.submit {
-                val result = v8.executeScript(jsScript, scriptName, 0)
+                val result = v8.executeScript(jsScript, scriptToDebug, 0)
                 println("[v8 execution result: ] $result")
 
                 Snackbar.make(view, "V8 answers: $result", Snackbar.LENGTH_SHORT)
@@ -56,8 +59,8 @@ class ExampleActivity : AppCompatActivity() {
         }
     }
 
-    private fun initDebuggableV8(scriptName: String): Future<V8> {
-        return v8Debugger.createDebuggableV8Runtime(v8Executor, scriptName)
+    private fun initDebuggableV8(): Future<V8> {
+        return V8Debugger.createDebuggableV8Runtime(v8Executor, "demo", true)
     }
 
     override fun onDestroy() {
@@ -68,7 +71,6 @@ class ExampleActivity : AppCompatActivity() {
 
     private fun releaseDebuggableV8() {
         v8Executor.execute {
-            v8Debugger.releaseV8Debugger()
             v8.close()
         }
     }
