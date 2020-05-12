@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class LoggerTest {
     private val tag = "MyTag"
     private val msg = "My message"
@@ -26,6 +26,15 @@ class LoggerTest {
     fun cleanUp() {
         LogUtils.enabled = false
         unmockkStatic(Log::class)
+    }
+
+    @Test
+    fun `Logger d() redirects to Android Log`() {
+        every { Log.d(any(), any()) } returns 0
+
+        logger.d(tag, msg)
+
+        verify { Log.d(tag, msg) }
     }
 
     @Test

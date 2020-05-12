@@ -1,7 +1,6 @@
 # J2V8-Debugger
 
 This project is an add-on for the excellent [J2V8 Project](https://github.com/eclipsesource/J2V8).
-This project is based on the excellent [J2V8 Debugger](https://github.com/jamie-houston/j2v8-debugger)
 
 It allows users to debug JS running in V8 using [Chrome DevTools](https://developers.google.com/web/tools/chrome-devtools/).
 
@@ -36,36 +35,20 @@ dependencies {
 
 ## Usage
 
-`StethoHelper` and `V8Helper` is used for set-up of Chrome DevTools and V8 for debugging.
+`StethoHelper` and `V8Debugger` are used for set-up of Chrome DevTools and V8 for debugging.
 
 1. Initialization Stetho in `Application` class.
 
-Use `StethoHelper.defaultInspectorModulesProvider()` instead of default `Stetho.defaultInspectorModulesProvider()`.
-
 ```.Kotlin
-                val initializer = Stetho.newInitializerBuilder(context)
-                        .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
-                        .enableWebKitInspector(StethoHelper.defaultInspectorModulesProvider(context, scriptProvider))
-                        .build();
-
-                Stetho.initialize(initializer);
+    StethoHelper.initializeDebugger(context, scriptSourceProvider)
 ```
 
 2. Creation of debuggable V8 instance.
 
-Use `V8Helper.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
+Use `V8Debugger.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
 
 ```.Kotlin
- val debuggableV8Runtime : Future<V8> = V8Helper.createDebuggableV8Runtime(v8Executor, scriptName)
-```
-
-3. Clean-up of debuggable V8.
-
-In addition to v8.close()
-
-```.Kotlin
-
-v8Executor.execute { v8Debugger.releaseDebuggable() }
+    val debuggableV8Runtime : Future<V8> = V8Debugger.createDebuggableV8Runtime(v8Executor, globalAlias, enableLogging)
 ```
 
 See [sample project](https://github.com/alexii/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
@@ -80,7 +63,7 @@ It's easier to implement such behaviour _(especially from lib point of view)_ if
 
 This way all above mentioned operations would run on such executor.
 
-Therefore lib api like `V8Helper.createDebuggableV8Runtime(v8Executor)` is build with this concept in mind.
+Therefore lib api like `V8Debugger.createDebuggableV8Runtime(v8Executor)` is build with this concept in mind.
 
 Later v8 executor will be passed to Chrome DevTools and used for performing debug-related operations.
 
