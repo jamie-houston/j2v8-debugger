@@ -24,7 +24,6 @@ class MapperTests {
         assertEquals(updatedScript, result)
     }
     @Test
-
     fun `setBreakpointByUrl gets scriptId from url`(){
         val dtoMapper= ObjectMapper()
         val prefix = Random().nextInt(100).toString()

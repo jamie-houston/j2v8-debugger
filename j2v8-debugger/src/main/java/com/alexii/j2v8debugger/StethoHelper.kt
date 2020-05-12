@@ -16,7 +16,6 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 object StethoHelper {
     private var debugger: Debugger? = null
     private var runtime: Runtime? = null
-
     private var v8MessengerRef: WeakReference<V8Messenger>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
 
@@ -64,7 +63,7 @@ object StethoHelper {
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
         return try {
-            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, factory)
+            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, v8Debugger, factory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.e(
                 Debugger.TAG,

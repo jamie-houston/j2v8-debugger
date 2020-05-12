@@ -73,7 +73,6 @@ class DebuggerTest {
     fun `No exceptions thrown when V8 not initialized`() {
         val debugger = Debugger(mockk())
 
-
         val requestMock = mockk<SetBreakpointByUrlRequest>()
         val jsonParamsMock = mockk<JSONObject>()
         val mapperMock = mockk<ObjectMapper> {

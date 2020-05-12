@@ -26,7 +26,7 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.alexii.j2v8debugger:j2v8-debugger:0.2.0') // {
+    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.0') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
@@ -73,6 +73,19 @@ If Guava is already used in project - MoreExecutors and [ListenableFuture](https
 - It's not possible to set break-point while debugging in progress.
 
  Reason: Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
- 
-### Useful Links
-https://github.com/cyrus-and/chrome-remote-interface/wiki/Inspect-the-inspector
+
+
+### License
+
+```
+Copyright 2015 Alexii Trotsenko
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+   http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```

@@ -62,6 +62,26 @@ internal class Debugger(
             // avoid app being freezed when no debugging happening anymore
             v8Messenger?.setDebuggerConnected(false)
         }
+        v8Debugger.setDebuggerConnected(true)
+    }
+
+    @ChromeDevtoolsMethod
+    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?) {
+        // Ignore
+    }
+
+    @ChromeDevtoolsMethod
+    fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
+        val method = Protocol.Debugger.EvaluateOnCallFrame
+        val result = v8Debugger.getV8Result(method, params)
+        return EvaluateOnCallFrameResult(JSONObject(result))
+    }
+
+    @ChromeDevtoolsMethod
+    fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
+        // This was changed from skipped to skip
+        // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
+        v8Debugger.queueV8Message(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
     }
 
     internal fun onScriptsChanged() {

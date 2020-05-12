@@ -25,6 +25,9 @@ class ExampleActivity : AppCompatActivity() {
     @Inject
     lateinit var v8Executor: ExecutorService
 
+    @Inject
+    lateinit var v8Debugger: V8Debugger
+
     lateinit var v8Future: Future<V8>
 
     /** Must be called only in v8's thread only. */
@@ -35,7 +38,7 @@ class ExampleActivity : AppCompatActivity() {
         var scriptPostfix = 1
         AndroidInjection.inject(this)
         updateUserToRandom()
-        v8Future = initDebuggableV8()
+        v8Future = initDebuggableV8(scriptName)
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_example)

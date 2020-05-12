@@ -11,6 +11,7 @@ object V8Debugger {
     /**
      * Utility, which simplifies configuring V8 for debugging support and creation of new instance.
      * Creates V8 runtime, v8 debugger and binds it to Stetho.
+
      *
      * @param v8Executor single-thread executor where v8 will be created
      *  and all debug calls will be performed by Stetho later.
