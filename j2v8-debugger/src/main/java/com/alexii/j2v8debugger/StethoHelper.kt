@@ -63,7 +63,7 @@ object StethoHelper {
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
         return try {
-            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, v8Debugger, factory)
+            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, factory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.e(
                 Debugger.TAG,

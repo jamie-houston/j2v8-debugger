@@ -18,9 +18,6 @@ class App : Application(), HasActivityInjector {
     @Inject
     lateinit var scriptProvider: ScriptSourceProvider
 
-    @Inject
-    lateinit var v8Debugger: V8Debugger
-
     override fun onCreate() {
         super.onCreate()
         Timber.plant(Timber.DebugTree())

@@ -2,7 +2,6 @@ package com.alexii.j2v8debugging.sample.di
 
 import android.content.Context
 import com.alexii.j2v8debugger.ScriptSourceProvider
-import com.alexii.j2v8debugger.V8Debugger
 import com.alexii.j2v8debugging.sample.App
 import com.alexii.j2v8debugging.sample.SimpleScriptProvider
 import dagger.Binds
@@ -24,7 +23,7 @@ class AppModule {
         fun provideContext(application: App): Context
 
         @Binds
-        fun provideSimpleScriptProvider(booksRepositoryImpl: SimpleScriptProvider): ScriptSourceProvider
+        fun provideSimpleScriptProvider(simpleScriptProvider: SimpleScriptProvider): ScriptSourceProvider
     }
 
     @Singleton
@@ -37,11 +36,5 @@ class AppModule {
     @Provides
     fun provideV8ExecutorService(): ExecutorService {
         return Executors.newSingleThreadExecutor();
-    }
-
-    @Singleton
-    @Provides
-    fun providesV8Debugger(): V8Debugger {
-        return V8Debugger()
     }
 }
