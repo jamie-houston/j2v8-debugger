@@ -62,6 +62,25 @@ internal class Debugger(
             // avoid app being freezed when no debugging happening anymore
             v8Messenger?.setDebuggerConnected(false)
         }
+    }
+
+    internal fun onScriptsChanged() {
+        scriptSourceProvider.allScriptIds
+            .map { ScriptParsedEvent(it) }
+            .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
+    }
+
+    @ChromeDevtoolsMethod
+    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+        runStethoSafely {
+            connectedPeer = peer
+
+            // Notify DevTools of scripts we want to display/debug
+            onScriptsChanged()
+
+            // avoid app being freezed when no debugging happening anymore
+            v8Messenger?.setDebuggerConnected(false)
+        }
         v8Messenger?.setDebuggerConnected(true)
     }
 
