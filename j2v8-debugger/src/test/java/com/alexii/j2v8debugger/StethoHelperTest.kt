@@ -1,7 +1,6 @@
 package com.alexii.j2v8debugger
 
 import android.app.Application
-import com.eclipsesource.v8.inspector.V8Inspector
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify

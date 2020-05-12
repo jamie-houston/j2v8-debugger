@@ -1,11 +1,9 @@
 package com.alexii.j2v8debugger
 
-import com.alexii.j2v8debugger.utils.logger
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import io.mockk.Runs
 import io.mockk.called
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -14,19 +12,11 @@ import io.mockk.verify
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.util.UUID
 import kotlin.random.Random
 
 class DebuggerTest {
-    companion object {
-        @BeforeAll
-        @JvmStatic
-        fun setUpClass() {
-            logger = mockk(relaxed = true)
-        }
-    }
 
     @Test
     fun `on enable all scripts retrieved`() {
@@ -108,7 +98,7 @@ class DebuggerTest {
         val jsonParamsMock = mockk<JSONObject>()
         val jsonResult = JSONObject().put(UUID.randomUUID().toString(), UUID.randomUUID().toString())
 
-        coEvery {
+        every {
             v8Messenger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
         }.returns(jsonResult.toString())
 

@@ -1,7 +1,6 @@
 package com.alexii.j2v8debugger
 
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
-import com.facebook.stetho.inspector.protocol.module.Runtime
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 

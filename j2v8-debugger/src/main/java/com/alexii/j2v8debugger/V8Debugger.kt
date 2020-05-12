@@ -2,7 +2,6 @@ package com.alexii.j2v8debugger
 
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.eclipsesource.v8.V8
-import com.eclipsesource.v8.inspector.V8Inspector
 import org.json.JSONObject
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
