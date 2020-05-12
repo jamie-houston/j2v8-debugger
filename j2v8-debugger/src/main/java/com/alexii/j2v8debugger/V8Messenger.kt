@@ -79,20 +79,17 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             }
         } else {
             val responseParams = message.params
-            val responseMethod = message.method
 
-            val functionMap = mapOf<String, (JSONObject?, String?) -> Unit>(
-                    Pair(Protocol.Debugger.ScriptParsed, ::handleScriptParsedEvent),
-                    Pair(Protocol.Debugger.BreakpointResolved, ::handleBreakpointResolvedEvent),
-                    Pair(Protocol.Debugger.Paused, ::handleDebuggerPausedEvent),
-                    Pair(Protocol.Debugger.Resumed, ::handleDebuggerResumedEvent)
-            )
-
-            functionMap[responseMethod]?.invoke(responseParams, responseMethod)
+            when (val responseMethod = message.method) {
+                Protocol.Debugger.ScriptParsed -> handleScriptParsedEvent(responseParams)
+                Protocol.Debugger.BreakpointResolved -> handleBreakpointResolvedEvent(responseParams, responseMethod)
+                Protocol.Debugger.Paused -> handleDebuggerPausedEvent(responseParams, responseMethod)
+                Protocol.Debugger.Resumed -> handleDebuggerResumedEvent()
+            }
         }
     }
 
-    private fun handleDebuggerResumedEvent(responseParams: JSONObject?, responseMethod: String?) {
+    private fun handleDebuggerResumedEvent() {
         debuggerState = DebuggerState.Connected
     }
 
@@ -105,7 +102,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
     }
 
-    private fun handleScriptParsedEvent(responseParams: JSONObject?, responseMethod: String?) {
+    private fun handleScriptParsedEvent(responseParams: JSONObject?) {
         val scriptParsedEvent = dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
         if (scriptParsedEvent.url.isNotEmpty()) {
             // Get the V8 Script ID to map to the Chrome ScipeId
@@ -139,7 +136,6 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         debuggerState = if (isConnected) DebuggerState.Connected else DebuggerState.Disconnected
     }
 
-
     private fun dispatchMessage(method: String, params: String? = null) {
         val messageId: Int
         val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
@@ -159,7 +155,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         var pending = false
     }
 
-    private enum class DebuggerState {
+    internal enum class DebuggerState {
         Disconnected,
         Paused,
         Connected
