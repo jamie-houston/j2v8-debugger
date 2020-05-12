@@ -33,11 +33,16 @@ object StethoHelper {
             field = "/$value/"
         }
 
-    fun initializeDebugger(context: Context, scriptSourceProvider: ScriptSourceProvider){
+    /**
+     * Initialize Stetho to enable Chrome DevTools to be intercepted
+     */
+    @JvmStatic
+    fun initializeDebugger(context: Context, scriptSourceProvider: ScriptSourceProvider) {
         val initializer = Stetho.newInitializerBuilder(context)
-                .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
-                .enableWebKitInspector(defaultInspectorModulesProvider(context, scriptSourceProvider))
-                .build()
+            .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
+            .enableWebKitInspector(defaultInspectorModulesProvider(context, scriptSourceProvider))
+
+            .build()
         Stetho.initialize(initializer)
     }
 
@@ -125,10 +130,10 @@ object StethoHelper {
         if (v8Messenger != null && v8Executor != null && chromeDebuggerAttached) {
             v8Executor.execute {
                 bindV8DebuggerToChromeDebugger(
-                        debugger!!,
-                        runtime!!,
-                        v8Executor,
-                        v8Messenger
+                    debugger!!,
+                    runtime!!,
+                    v8Executor,
+                    v8Messenger
                 )
             }
         }
@@ -158,7 +163,8 @@ object StethoHelper {
         context: Context,
         factory: RuntimeReplFactory?
     ): Iterable<ChromeDevtoolsDomain> {
-        return Stetho.DefaultInspectorModulesBuilder(context).runtimeRepl(factory)
+        return Stetho.DefaultInspectorModulesBuilder(context)
+            .runtimeRepl(factory)
             .finish()
     }
 }

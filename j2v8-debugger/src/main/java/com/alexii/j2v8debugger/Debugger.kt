@@ -28,9 +28,7 @@ internal class Debugger(
      */
     private var v8Executor: ExecutorService? = null
     private var v8Messenger: V8Messenger? = null
-
     private var connectedPeer: JsonRpcPeer? = null
-
     private val breakpointsAdded = mutableListOf<String>()
 
     fun initialize(v8Executor: ExecutorService, v8Messenger: V8Messenger) {
@@ -47,6 +45,7 @@ internal class Debugger(
     private fun onDisconnect() {
         logger.d(TAG, "Disconnecting from Chrome")
         runStethoSafely {
+            // Remove added breakpoints
             breakpointsAdded.forEach { breakpointId ->
                 v8Executor?.execute {
                     v8Messenger?.sendMessage(
@@ -60,7 +59,7 @@ internal class Debugger(
             NetworkPeerManager.getInstanceOrNull()?.removePeer(connectedPeer)
             connectedPeer = null
 
-            //avoid app being freezed when no debugging happening anymore
+            // avoid app being freezed when no debugging happening anymore
             v8Messenger?.setDebuggerConnected(false)
         }
     }
@@ -76,10 +75,12 @@ internal class Debugger(
         runStethoSafely {
             connectedPeer = peer
 
+            // Notify DevTools of scripts we want to display/debug
             onScriptsChanged()
 
             peer.registerDisconnectReceiver(::onDisconnect)
         }
+
         v8Messenger?.setDebuggerConnected(true)
     }
 
@@ -116,41 +117,6 @@ internal class Debugger(
             }
         }
     }
-
-    @ChromeDevtoolsMethod
-    fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.Resume, params, true)
-    }
-
-    @ChromeDevtoolsMethod
-    fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.Pause, params, true)
-    }
-
-    @ChromeDevtoolsMethod
-    fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepOver, params, true)
-    }
-
-    @ChromeDevtoolsMethod
-    fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepInto, params, true)
-    }
-
-    @ChromeDevtoolsMethod
-    fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params, true)
-    }
-
-    @ChromeDevtoolsMethod
-    fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
-        //Looks like this method should not be called at all.
-        val action: () -> JsonRpcResult? = {
-            throw IllegalArgumentException("Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: $params")
-        }
-        return runStethoSafely(action)
-    }
-
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
         return runStethoAndV8Safely {
@@ -162,7 +128,9 @@ internal class Debugger(
                     dtoMapper.convertValue(request, JSONObject::class.java)
                 )
                 val response = SetBreakpointByUrlResponse(request)
+                // Save breakpoint to remove on disconnect
                 breakpointsAdded.add(response.breakpointId)
+
                 response
             })
 
@@ -199,9 +167,39 @@ internal class Debugger(
         }
     }
 
+
+    /**
+     * Pass through to J2V8 methods
+     */
+    @ChromeDevtoolsMethod
+    fun resume(peer: JsonRpcPeer, params: JSONObject?) {
+        v8Messenger?.sendMessage(Protocol.Debugger.Resume, params, true)
+    }
+
+    @ChromeDevtoolsMethod
+    fun pause(peer: JsonRpcPeer, params: JSONObject?) {
+        v8Messenger?.sendMessage(Protocol.Debugger.Pause, params, true)
+    }
+
+    @ChromeDevtoolsMethod
+    fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
+        v8Messenger?.sendMessage(Protocol.Debugger.StepOver, params, true)
+    }
+
+    @ChromeDevtoolsMethod
+    fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
+        v8Messenger?.sendMessage(Protocol.Debugger.StepInto, params, true)
+    }
+
+    @ChromeDevtoolsMethod
+    fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
+        v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params, true)
+    }
+
     /**
      *  Safe for Stetho - makes sure that no exception is thrown.
-     *  Safe for V8 - makes sure, that v8 initialized and v8 thread is not not paused in debugger.
+     * If any exception then [JsonRpcError] is thrown from method annotated with @ChromeDevtoolsMethod-
+     * Stetho reports broken I/O pipe and Chrome DevTools disconnects.
      */
     private fun <T> runStethoSafely(action: () -> T): T? {
         LogUtils.logChromeDevToolsCalled()
@@ -217,8 +215,7 @@ internal class Debugger(
 
     /**
      * Safe for Stetho - makes sure that no exception is thrown.
-     * If any exception then [JsonRpcError] is thrown from method annotated with @ChromeDevtoolsMethod-
-     * Stetho reports broken I/O pipe and Chrome DevTools disconnects.
+     * Safe for V8 - makes sure, that v8 initialized and v8 thread is not not paused in debugger.
      */
     private fun <T> runStethoAndV8Safely(action: () -> T): T? {
         return runStethoSafely {

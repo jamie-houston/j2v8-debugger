@@ -100,6 +100,11 @@ internal class LocationResponse {
     var columnNumber: Int? = null
 }
 
+/**
+ * Any message from J2V8
+ * If it contains an id, it's a response from a request sent
+ * Otherwise it's an event
+ */
 internal class V8Response : JsonRpcResult {
     val isResponse by lazy { (id != null) }
 
@@ -132,6 +137,10 @@ internal class BreakpointResolvedEvent : JsonRpcResult {
 
 internal class GetPropertiesResult : JSONObject(), JsonRpcResult
 
+/**
+ * Replace any incoming scriptIds with scriptIds in map
+ * This converts scriptId used in J2V8 with ones used in ScriptSourceProvider
+ */
 internal fun replaceScriptId(from: JSONObject, scriptMap: Map<String, String>): JSONObject{
     val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
     val to = from.toString().replace(regex) {
@@ -144,6 +153,5 @@ internal fun replaceScriptId(from: JSONObject, scriptMap: Map<String, String>): 
 private val scriptsDomain = "http://app/"
 private val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
 
-//move to separate mapper class if conversion logic become complicated and used in many places
 private fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
 private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)

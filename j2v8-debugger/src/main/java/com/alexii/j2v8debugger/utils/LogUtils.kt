@@ -40,7 +40,7 @@ internal object LogUtils {
         if (!enabled) return
 
         try {
-            logger.i(TAG, "Calling " + getChromeDevToolsMethodName())
+            logger.i(TAG, "Calling ${getChromeDevToolsMethodName()}")
         } catch (e: Exception) {
             logger.e(TAG, "Unable to log called method", e)
         }
