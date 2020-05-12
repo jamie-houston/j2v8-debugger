@@ -94,12 +94,11 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
-        debuggerState = DebuggerState.Paused
-        val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
-        val updatedScript = responseParams.toString().replace(regex) {
-            "\"scriptId\":\"${v8ScriptMap[it.groups[1]?.value]}\""
+        if (responseParams != null) {
+            debuggerState = DebuggerState.Paused
+            val updatedScript = replaceScriptId(responseParams, v8ScriptMap)
+            chromeMessageQueue[responseMethod] = updatedScript
         }
-        chromeMessageQueue[responseMethod] = JSONObject(updatedScript)
     }
 
     private fun handleScriptParsedEvent(responseParams: JSONObject?) {

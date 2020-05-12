@@ -133,48 +133,13 @@ internal class BreakpointResolvedEvent : JsonRpcResult {
 
 internal class GetPropertiesResult : JSONObject(), JsonRpcResult
 
-internal data class PausedEvent @JvmOverloads constructor(
-        @field:JsonProperty @JvmField
-        val callFrames: List<CallFrame>,
-
-        @field:JsonProperty @JvmField
-        val reason: String = "other"
-)
-
-internal data class CallFrame @JvmOverloads constructor(
-        @field:JsonProperty @JvmField
-        val callFrameId: String,
-
-        @field:JsonProperty @JvmField
-        val functionName: String,
-
-        @field:JsonProperty @JvmField
-        val location: LocationResponse,
-
-        /** JavaScript script name or url. */
-        @field:JsonProperty @JvmField
-        val url: String,
-
-        @field:JsonProperty @JvmField
-        val scopeChain: List<Scope>,
-
-        //xxx: check how and whether it's wotking with this
-        @field:JsonProperty @JvmField
-        val `this`: Runtime.RemoteObject? = null
-)
-
-internal data class Scope(
-        /** one of: global, local, with, closure, catch, block, script, eval, module. */
-        @field:JsonProperty @JvmField
-        val type: String,
-        /**
-         * Object representing the scope.
-         * For global and with scopes it represents the actual object;
-         * for the rest of the scopes, it is artificial transient object enumerating scope variables as its properties.
-         */
-        @field:JsonProperty @JvmField
-        val `object`: Runtime.RemoteObject
-)
+internal fun replaceScriptId(from: JSONObject, scriptMap: Map<String, String>): JSONObject{
+    val regex = "\"scriptId\":\"(\\d+)\"".toRegex()
+    val to = from.toString().replace(regex) {
+        "\"scriptId\":\"${scriptMap[it.groups[1]?.value]}\""
+    }
+    return JSONObject(to)
+}
 
 //users of the lib can change this value
 private val scriptsDomain = "http://app/"
