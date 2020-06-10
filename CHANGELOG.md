@@ -3,6 +3,10 @@ Change Log
 
 Version 0.2.1
 ----------------------------
+* Setting breakpoints during debugging (paused) doesn't kill DevTools.  Next execution will pick up breakpoint.
+
+Version 0.2.1
+----------------------------
 * fixed unnecessary v8Executor.execute() in StethoHelper.bindV8ToChromeDebuggerIfReady() 
 
 Version 0.2.0
