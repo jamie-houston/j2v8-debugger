@@ -86,7 +86,11 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
         val method = Protocol.Debugger.EvaluateOnCallFrame
-        val result = v8Messenger?.getV8Result(method, params)
+        var result: String? = ""
+
+        v8Executor?.execute {
+            result = v8Messenger?.getV8Result(method, params)
+        }
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 

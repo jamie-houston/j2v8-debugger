@@ -10,6 +10,7 @@ import org.json.JSONObject
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashMap
+import kotlin.concurrent.thread
 
 class V8Messenger(v8: V8): V8InspectorDelegate {
     private val dtoMapper: ObjectMapper = ObjectMapper()
@@ -24,6 +25,8 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         V8Inspector.createV8Inspector(v8, this, TAG)
     }
 
+    val isDebuggerPaused = debuggerState == DebuggerState.Paused
+
     /**
      * Pass a method and params through to J2V8 to get the response.
      */
@@ -32,7 +35,14 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         pendingMessageQueue.add(pendingMessage)
 
         v8MessageQueue[method] = params ?: JSONObject()
+        if (debuggerState == DebuggerState.Connected) {
+            dispatchMessage(method, params)
+        }
+
         while (pendingMessage.response.isNullOrBlank()) {
+            if (debuggerState == DebuggerState.Connected) {
+                Thread.sleep(10)
+            }
             // wait for response from server
         }
         pendingMessageQueue.remove(pendingMessage)
