@@ -23,7 +23,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
         this.v8Messenger = v8Messenger
         this.v8Executor = v8Executor
     }
-    
+
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         val method = Protocol.Runtime.GetProperties
@@ -54,5 +54,17 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? = adaptee.callFunctionOn(peer, params)
 
     @ChromeDevtoolsMethod
-    fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult = adaptee.evaluate(peer, params)
+    fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = Protocol.Runtime.Evaluate
+        var result: String? = null
+        v8Executor?.execute {
+            result = v8Messenger?.getV8Result(method, params)
+        }
+        return EvaluateOnCallFrameResult(JSONObject(result))
+    }
+
+    @ChromeDevtoolsMethod
+    fun compileScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
+        return adaptee.callFunctionOn(peer, params)
+    }
 }
