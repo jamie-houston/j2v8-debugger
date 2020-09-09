@@ -13,6 +13,7 @@ import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_example.fab
 import kotlinx.android.synthetic.main.activity_example.toolbar
 import java.util.Random
+import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import javax.inject.Inject
@@ -57,7 +58,11 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun initDebuggableV8(): Future<V8> {
-        return V8Debugger.createDebuggableV8Runtime(v8Executor, "demo", true)
+        return v8Executor.submit(Callable {
+            val runtime = V8.createV8Runtime()
+            runtime
+        })
+//        return V8Debugger.createDebuggableV8Runtime(v8Executor, "demo", true)
     }
 
     override fun onDestroy() {

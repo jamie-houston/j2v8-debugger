@@ -28,7 +28,7 @@ class App : Application(), HasActivityInjector {
                 .build()
                 .inject(this)
 
-        StethoHelper.initializeDebugger(this, scriptProvider)
+//        StethoHelper.initializeDebugger(this, scriptProvider)
 
         Timber.w("[Alex_Stetho] initialize")
     }
