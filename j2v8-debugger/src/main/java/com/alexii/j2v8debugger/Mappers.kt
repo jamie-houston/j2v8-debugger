@@ -64,6 +64,15 @@ internal class SetBreakpointByUrlRequest : JsonRpcResult {
     val scriptId get() = urlToScriptId(url)
 }
 
+internal class EvaluateRequest : JsonRpcResult {
+    @field:JsonProperty
+    @JvmField
+    var objectGroup: String? = null
+
+    @field:JsonProperty
+    @JvmField
+    var expression: String? = null
+}
 internal class SetBreakpointByUrlResponse(
         request: SetBreakpointByUrlRequest) : JsonRpcResult {
     @field:JsonProperty

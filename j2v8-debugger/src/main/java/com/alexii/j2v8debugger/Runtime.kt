@@ -5,6 +5,7 @@ import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
+import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.ExecutorService
@@ -18,6 +19,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     private var v8Messenger: V8Messenger? = null
     private val adaptee = FacebookRuntimeBase(replFactory)
     private var v8Executor: ExecutorService? = null
+    var dtoMapper: ObjectMapper = ObjectMapper()
 
     fun initialize(v8Messenger: V8Messenger, v8Executor: ExecutorService) {
         this.v8Messenger = v8Messenger
@@ -56,9 +58,15 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         val method = Protocol.Runtime.Evaluate
+        val request = dtoMapper.convertValue(params, EvaluateRequest::class.java)
+
+        if (!request.objectGroup.equals("console")) {
+            return EvaluateOnCallFrameResult(JSONObject("{'wasThrown': true, 'exceptionDetails': 'Not supported by FAB'}"))
+        }
         var result: String? = null
         v8Executor?.execute {
             result = v8Messenger?.getV8Result(method, params)
+            println("got result: $result")
         }
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
