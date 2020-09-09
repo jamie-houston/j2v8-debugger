@@ -68,7 +68,8 @@ internal class Debugger(
                 v8Executor?.execute {
                     v8Messenger?.sendMessage(
                         Protocol.Debugger.RemoveBreakpoint,
-                        JSONObject().put("breakpointId", breakpointId))
+                        JSONObject().put("breakpointId", breakpointId)
+                    )
 
                 }
             }
@@ -99,7 +100,11 @@ internal class Debugger(
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
         // This was changed from skipped to skip
         // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
-        v8Messenger?.sendMessage(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
+        v8Messenger?.sendMessage(
+            Protocol.Debugger.SetSkipAllPauses,
+            JSONObject().put("skip", params?.getBoolean("skipped")),
+            true
+        )
     }
 
     @ChromeDevtoolsMethod
