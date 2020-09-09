@@ -5,9 +5,11 @@ import android.app.Application
 import com.alexii.j2v8debugger.ScriptSourceProvider
 import com.alexii.j2v8debugger.StethoHelper
 import com.alexii.j2v8debugging.sample.di.DaggerAppComponent
+import com.facebook.stetho.okhttp3.StethoInterceptor
 import dagger.android.AndroidInjector
 import dagger.android.DispatchingAndroidInjector
 import dagger.android.HasActivityInjector
+import okhttp3.OkHttpClient
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -28,7 +30,8 @@ class App : Application(), HasActivityInjector {
                 .build()
                 .inject(this)
 
-//        StethoHelper.initializeDebugger(this, scriptProvider)
+        StethoHelper.initializeDebugger(this, scriptProvider)
+//        val client = OkHttpClient.Builder().addNetworkInterceptor(StethoInterceptor()).build()
 
         Timber.w("[Alex_Stetho] initialize")
     }
