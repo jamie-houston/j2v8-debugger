@@ -11,6 +11,7 @@ import com.eclipsesource.v8.utils.V8Executor
 import com.facebook.stetho.inspector.console.RuntimeRepl
 import com.facebook.stetho.json.ObjectMapper
 import java.lang.ref.WeakReference
+import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
@@ -19,7 +20,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 object StethoHelper {
     private var debugger: Debugger? = null
     private var runtime: Runtime? = null
-    private var debuggerRuntimeReplFactory: RuntimeReplFactory? = null
+    private val debuggerRuntimeReplFactory = DebuggerRuntimeReplFactory()
 
     private var v8MessengerRef: WeakReference<V8Messenger>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
@@ -67,7 +68,7 @@ object StethoHelper {
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
         return try {
-            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, factory)
+            getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, debuggerRuntimeReplFactory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.e(
                 Debugger.TAG,
@@ -75,7 +76,7 @@ object StethoHelper {
                 e
             )
 
-            getDefaultInspectorModules(context, factory)
+            getDefaultInspectorModules(context, debuggerRuntimeReplFactory)
         }
     }
 
@@ -84,8 +85,7 @@ object StethoHelper {
         scriptSourceProvider: ScriptSourceProvider,
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
-        debuggerRuntimeReplFactory = factory ?: DebuggerRuntimeReplFactory()
-        val defaultInspectorModules = getDefaultInspectorModules(context, factory)
+        val defaultInspectorModules = getDefaultInspectorModules(context, debuggerRuntimeReplFactory)
 
         //remove work-around when https://github.com/facebook/stetho/pull/600 is merged
         val inspectorModules = ArrayList<ChromeDevtoolsDomain>()
@@ -98,7 +98,7 @@ object StethoHelper {
         }
 
         debugger = Debugger(scriptSourceProvider)
-        runtime = Runtime(factory)
+        runtime = Runtime(debuggerRuntimeReplFactory)
         inspectorModules.add(debugger!!)
         inspectorModules.add(runtime!!)
 
@@ -110,9 +110,10 @@ object StethoHelper {
     /**
      * @param v8Executor executor, where V8 should be previously initialized and further will be called on.
      */
-    fun initializeWithV8Messenger(v8Messenger: V8Messenger, v8Executor: ExecutorService) {
+    fun initializeWithV8Messenger(v8Messenger: V8Messenger, v8Executor: ExecutorService, v8: V8) {
         v8MessengerRef = WeakReference(v8Messenger)
         v8ExecutorRef = WeakReference(v8Executor)
+        (debuggerRuntimeReplFactory as DebuggerRuntimeReplFactory).initialize(v8, v8Executor)
 
         bindV8ToChromeDebuggerIfReady()
     }
@@ -152,7 +153,6 @@ object StethoHelper {
     ) {
         chromeDebugger.initialize(v8Executor, v8Messenger)
         chromeRuntime.initialize(v8Messenger)
-        (debuggerRuntimeReplFactory as DebuggerRuntimeReplFactory).initialize(v8)
     }
 
     /**
@@ -166,14 +166,17 @@ object StethoHelper {
         factory: RuntimeReplFactory?
     ): Iterable<ChromeDevtoolsDomain> {
         return Stetho.DefaultInspectorModulesBuilder(context)
-            .runtimeRepl(factory)
+            .runtimeRepl(debuggerRuntimeReplFactory)
             .finish()
     }
 
-    class DebuggerRuntimeRepl(private val v8: V8) : RuntimeRepl {
+    class DebuggerRuntimeRepl(private val v8: V8, private val v8Executor: ExecutorService) : RuntimeRepl {
 
         override fun evaluate(expression: String?): Any {
-            val result = v8.executeScript(expression)
+            val result = v8Executor.submit(Callable {
+                val answer = v8.executeObjectScript(expression)
+                answer
+            }).get()
             // TODO: Convert response to response
             val response = EvaluateResponse()
             return response
@@ -183,14 +186,19 @@ object StethoHelper {
     class DebuggerRuntimeReplFactory : RuntimeReplFactory {
         private var debuggerRepl: RuntimeRepl? = null
         private var v8: V8? = null
+        private var v8Executor: ExecutorService? = null
 
-        fun initialize(v8: V8) {
+        fun initialize(v8: V8, v8Executor: ExecutorService) {
             this.v8 = v8
+            this.v8Executor = v8Executor
         }
 
         override fun newInstance(): RuntimeRepl {
             if (debuggerRepl == null) {
-                debuggerRepl = DebuggerRuntimeRepl(v8)
+                v8?.let {
+                    debuggerRepl = DebuggerRuntimeRepl(it,v8Executor!!)
+                } ?: throw Exception("Unable to run debugger before initialized")
+
             }
             return debuggerRepl as RuntimeRepl
         }

@@ -34,7 +34,7 @@ object V8Debugger {
                 sendMessage(Protocol.Runtime.RunIfWaitingForDebugger)
             }
 
-            StethoHelper.initializeWithV8Messenger(messenger, v8Executor)
+            StethoHelper.initializeWithV8Messenger(messenger, v8Executor, runtime)
 
             runtime
         })

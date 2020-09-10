@@ -42,5 +42,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? = adaptee.callFunctionOn(peer, params)
 
     @ChromeDevtoolsMethod
-    fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult = adaptee.evaluate(peer, params)
+    fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        adaptee.evaluate(peer, params)
+    }
 }
