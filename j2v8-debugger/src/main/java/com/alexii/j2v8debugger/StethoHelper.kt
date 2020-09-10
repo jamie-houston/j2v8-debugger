@@ -7,6 +7,9 @@ import com.facebook.stetho.Stetho
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.alexii.j2v8debugger.utils.logger
+import com.eclipsesource.v8.utils.V8Executor
+import com.facebook.stetho.inspector.console.RuntimeRepl
+import com.facebook.stetho.json.ObjectMapper
 import java.lang.ref.WeakReference
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
@@ -16,6 +19,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 object StethoHelper {
     private var debugger: Debugger? = null
     private var runtime: Runtime? = null
+    private var debuggerRuntimeReplFactory: RuntimeReplFactory? = null
 
     private var v8MessengerRef: WeakReference<V8Messenger>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
@@ -80,6 +84,7 @@ object StethoHelper {
         scriptSourceProvider: ScriptSourceProvider,
         factory: RuntimeReplFactory? = null
     ): Iterable<ChromeDevtoolsDomain> {
+        debuggerRuntimeReplFactory = factory ?: DebuggerRuntimeReplFactory()
         val defaultInspectorModules = getDefaultInspectorModules(context, factory)
 
         //remove work-around when https://github.com/facebook/stetho/pull/600 is merged
@@ -147,6 +152,7 @@ object StethoHelper {
     ) {
         chromeDebugger.initialize(v8Executor, v8Messenger)
         chromeRuntime.initialize(v8Messenger)
+        (debuggerRuntimeReplFactory as DebuggerRuntimeReplFactory).initialize(v8)
     }
 
     /**
@@ -162,5 +168,31 @@ object StethoHelper {
         return Stetho.DefaultInspectorModulesBuilder(context)
             .runtimeRepl(factory)
             .finish()
+    }
+
+    class DebuggerRuntimeRepl(private val v8: V8) : RuntimeRepl {
+
+        override fun evaluate(expression: String?): Any {
+            val result = v8.executeScript(expression)
+            // TODO: Convert response to response
+            val response = EvaluateResponse()
+            return response
+        }
+    }
+
+    class DebuggerRuntimeReplFactory : RuntimeReplFactory {
+        private var debuggerRepl: RuntimeRepl? = null
+        private var v8: V8? = null
+
+        fun initialize(v8: V8) {
+            this.v8 = v8
+        }
+
+        override fun newInstance(): RuntimeRepl {
+            if (debuggerRepl == null) {
+                debuggerRepl = DebuggerRuntimeRepl(v8)
+            }
+            return debuggerRepl as RuntimeRepl
+        }
     }
 }

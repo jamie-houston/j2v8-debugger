@@ -1,24 +1,54 @@
 package com.alexii.j2v8debugger
 
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
+import com.facebook.stetho.inspector.protocol.module.Runtime
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 
+internal class EvaluateRequest : JsonRpcResult {
+    @field:JsonProperty
+    @JvmField
+    var objectGroup: String? = null
+
+    @field:JsonProperty
+    @JvmField
+    var expression: String? = null
+}
+
 internal class EvaluateOnCallFrameResult(
-        @field:JsonProperty
-        @JvmField
-        val result: JSONObject? = null
+    @field:JsonProperty
+    @JvmField
+    val result: JSONObject? = null
 ) : JsonRpcResult
+
+internal class EvaluateResponse : JsonRpcResult {
+    @field:JsonProperty
+    @JvmField
+    var result: Runtime.RemoteObject? = null
+
+    @field:JsonProperty
+    @JvmField
+    var wasThrown = false
+
+    @field:JsonProperty
+    @JvmField
+    var exceptionDetails: ExceptionDetails? = null
+}
+
+internal class ExceptionDetails {
+    @field:JsonProperty
+    var text: String? = null
+}
 
 /**
  * Fired as the result of [Debugger.enable]
  */
 internal class ScriptParsedEvent(
-        @field:JsonProperty @JvmField
-        val scriptId: String,
+    @field:JsonProperty @JvmField
+    val scriptId: String,
 
-        @field:JsonProperty @JvmField
-        val url: String = scriptIdToUrl(scriptId)
+    @field:JsonProperty @JvmField
+    val url: String = scriptIdToUrl(scriptId)
 )
 
 internal class ScriptParsedEventRequest : JsonRpcResult {
@@ -38,8 +68,8 @@ internal class GetScriptSourceRequest : JsonRpcResult {
 }
 
 internal class GetScriptSourceResponse(
-        @field:JsonProperty @JvmField
-        val scriptSource: String
+    @field:JsonProperty @JvmField
+    val scriptSource: String
 ) : JsonRpcResult
 
 internal class SetBreakpointByUrlRequest : JsonRpcResult {
@@ -65,7 +95,8 @@ internal class SetBreakpointByUrlRequest : JsonRpcResult {
 }
 
 internal class SetBreakpointByUrlResponse(
-        request: SetBreakpointByUrlRequest) : JsonRpcResult {
+    request: SetBreakpointByUrlRequest
+) : JsonRpcResult {
     @field:JsonProperty
     @JvmField
     val breakpointId = "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"
@@ -76,14 +107,14 @@ internal class SetBreakpointByUrlResponse(
 }
 
 internal data class Location(
-        @field:JsonProperty @JvmField
-        val scriptId: String,
+    @field:JsonProperty @JvmField
+    val scriptId: String,
 
-        @field:JsonProperty @JvmField
-        val lineNumber: Int,
+    @field:JsonProperty @JvmField
+    val lineNumber: Int,
 
-        @field:JsonProperty @JvmField
-        val columnNumber: Int
+    @field:JsonProperty @JvmField
+    val columnNumber: Int
 )
 
 internal class LocationResponse {
