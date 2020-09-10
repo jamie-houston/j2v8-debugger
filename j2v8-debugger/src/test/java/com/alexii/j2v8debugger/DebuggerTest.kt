@@ -57,7 +57,7 @@ class DebuggerTest {
 
         verify (exactly = 1){mapperMock.convertValue(eq(jsonParams), eq(requestStub::class.java))}
 
-        verify { v8Messenger.sendMessage(message = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
+        verify { v8Messenger.sendMessage(method = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
@@ -115,7 +115,7 @@ class DebuggerTest {
         debugger.initialize(mockk(), v8Messenger)
         val jsonResult = slot<JSONObject>()
         every {
-            v8Messenger.sendMessage(message = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
+            v8Messenger.sendMessage(method = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
         } just Runs
 
         debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))

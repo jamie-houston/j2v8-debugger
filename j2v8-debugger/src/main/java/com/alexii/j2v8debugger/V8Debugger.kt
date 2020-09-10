@@ -20,18 +20,30 @@ object V8Debugger {
      *
      * NOTE: Should be declared as V8 class extensions when will be allowed (https://youtrack.jetbrains.com/issue/KT-11968)
      */
-    fun createDebuggableV8Runtime(v8Executor: ExecutorService, globalAlias: String = "global", enableLogging: Boolean = true): Future<V8> {
+    fun createDebuggableV8Runtime(
+        v8Executor: ExecutorService,
+        globalAlias: String = "global",
+        enableLogging: Boolean = true
+    ): Future<V8> {
         LogUtils.enabled = enableLogging
         return v8Executor.submit(Callable {
             val runtime = V8.createV8Runtime(globalAlias)
-            val messenger = V8Messenger(runtime)
+            val messenger = V8Messenger(runtime, v8Executor)
             with(messenger) {
                 // Default Chrome DevTool protocol messages
-                sendMessage(Protocol.Runtime.Enable)
+                sendMessage(Protocol.Runtime.Enable, crossThread = false)
 
-                sendMessage(Protocol.Debugger.Enable, JSONObject().put("maxScriptsCacheSize", MAX_SCRIPT_CACHE_SIZE))
-                sendMessage(Protocol.Debugger.SetAsyncCallStackDepth, JSONObject().put("maxDepth", MAX_DEPTH))
-                sendMessage(Protocol.Runtime.RunIfWaitingForDebugger)
+                sendMessage(
+                    Protocol.Debugger.Enable,
+                    JSONObject().put("maxScriptsCacheSize", MAX_SCRIPT_CACHE_SIZE),
+                    crossThread = false
+                )
+                sendMessage(
+                    Protocol.Debugger.SetAsyncCallStackDepth,
+                    JSONObject().put("maxDepth", MAX_DEPTH),
+                    crossThread = false
+                )
+                sendMessage(Protocol.Runtime.RunIfWaitingForDebugger, crossThread = false)
             }
 
             StethoHelper.initializeWithV8Messenger(messenger, v8Executor)

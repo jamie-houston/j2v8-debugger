@@ -1,12 +1,15 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.utils.logger
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
+import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
@@ -18,6 +21,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     private var v8Messenger: V8Messenger? = null
     private val adaptee = FacebookRuntimeBase(replFactory)
     private var v8Executor: ExecutorService? = null
+    var dtoMapper: ObjectMapper = ObjectMapper()
 
     fun initialize(v8Messenger: V8Messenger, v8Executor: ExecutorService) {
         this.v8Messenger = v8Messenger
@@ -26,18 +30,15 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        logger.d(TAG, "getProperties $params")
+
         val method = Protocol.Runtime.GetProperties
-        var result: String? = ""
 
-        if (v8Messenger?.isDebuggerPaused == true) {
-            result = v8Messenger?.getV8Result(method, params)
-        } else {
-            v8Executor?.execute {
-                result = v8Messenger?.getV8Result(method, params)
-            }
-        }
+        var result: String? = v8Messenger?.getV8Result(method, params)
 
-        val jsonResult = GetPropertiesResult().put("result", JSONArray(result))
+        val jsonArray = if (result.isNullOrEmpty()) JSONArray() else JSONArray(result)
+        val jsonResult = GetPropertiesResult().put("result", jsonArray)
+
         return jsonResult as JsonRpcResult
     }
 
@@ -48,23 +49,26 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
     fun releaseObject(peer: JsonRpcPeer?, params: JSONObject?) = adaptee.releaseObject(peer, params)
 
     @ChromeDevtoolsMethod
-    fun releaseObjectGroup(peer: JsonRpcPeer?, params: JSONObject?) = adaptee.releaseObjectGroup(peer, params)
+    fun releaseObjectGroup(peer: JsonRpcPeer?, params: JSONObject?) =
+        adaptee.releaseObjectGroup(peer, params)
 
     @ChromeDevtoolsMethod
-    fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? = adaptee.callFunctionOn(peer, params)
+    fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? =
+        adaptee.callFunctionOn(peer, params)
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        val method = Protocol.Runtime.Evaluate
-        var result: String? = null
-        v8Executor?.execute {
-            result = v8Messenger?.getV8Result(method, params)
-        }
+        logger.d(TAG, "evaluate: $params")
+        var result: String? = v8Messenger?.getV8Result(Protocol.Runtime.Evaluate, params)
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 
     @ChromeDevtoolsMethod
     fun compileScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
         return adaptee.callFunctionOn(peer, params)
+    }
+
+    companion object {
+        const val TAG = "Runtime"
     }
 }

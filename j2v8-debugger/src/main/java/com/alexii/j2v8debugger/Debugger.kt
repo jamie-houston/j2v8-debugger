@@ -67,9 +67,10 @@ internal class Debugger(
             breakpointsAdded.forEach { breakpointId ->
                 v8Executor?.execute {
                     v8Messenger?.sendMessage(
-                        Protocol.Debugger.RemoveBreakpoint,
-                        JSONObject().put("breakpointId", breakpointId))
-
+                        method = Protocol.Debugger.RemoveBreakpoint,
+                        params = JSONObject().put("breakpointId", breakpointId),
+                        crossThread = false
+                    )
                 }
             }
             breakpointsAdded.clear()
@@ -99,7 +100,12 @@ internal class Debugger(
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
         // This was changed from skipped to skip
         // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
-        v8Messenger?.sendMessage(Protocol.Debugger.SetSkipAllPauses, JSONObject().put("skip", params?.getBoolean("skipped")), true)
+        v8Messenger?.sendMessage(
+            Protocol.Debugger.SetSkipAllPauses,
+            JSONObject().put("skip", params?.getBoolean("skipped")),
+            crossThread = true,
+            runOnlyWhenPaused = true
+        )
     }
 
     @ChromeDevtoolsMethod
@@ -132,7 +138,8 @@ internal class Debugger(
             v8Executor?.execute {
                 v8Messenger?.sendMessage(
                     Protocol.Debugger.SetBreakpointByUrl,
-                    dtoMapper.convertValue(request, JSONObject::class.java)
+                    dtoMapper.convertValue(request, JSONObject::class.java),
+                    crossThread = false
                 )
             }
         }
@@ -149,7 +156,8 @@ internal class Debugger(
             v8Executor?.execute {
                 v8Messenger?.sendMessage(
                     Protocol.Debugger.RemoveBreakpoint,
-                    params
+                    params,
+                    crossThread = false
                 )
             }
         }
@@ -160,10 +168,12 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject) {
         runStethoAndV8Safely {
-            v8Executor?.execute { v8Messenger?.sendMessage(Protocol.Debugger.SetBreakpointsActive, params) }
+            v8Messenger?.sendMessage(
+                Protocol.Debugger.SetBreakpointsActive, params,
+                crossThread = true
+            )
         }
     }
-
 
     /**
      * Pass through to J2V8 methods
@@ -171,31 +181,49 @@ internal class Debugger(
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.Resume, params, true)
+        v8Messenger?.sendMessage(
+            Protocol.Debugger.Resume,
+            params,
+            crossThread = true,
+            runOnlyWhenPaused = true
+        )
     }
 
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.Pause, params, true)
+        v8Messenger?.sendMessage(
+            Protocol.Debugger.Pause,
+            params,
+            crossThread = true,
+            runOnlyWhenPaused = true
+        )
     }
 
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepOver, params, true)
+        v8Messenger?.sendMessage(
+            Protocol.Debugger.StepOver,
+            params,
+            crossThread = true,
+            runOnlyWhenPaused = true
+        )
     }
 
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepInto, params, true)
+        v8Messenger?.sendMessage(
+            Protocol.Debugger.StepInto, params,
+            crossThread = true, runOnlyWhenPaused = true
+        )
     }
 
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params, true)
+        v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params,  crossThread = true, runOnlyWhenPaused = true)
     }
 
     /**

@@ -8,13 +8,14 @@ import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONObject
 import java.util.Collections
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashMap
-import kotlin.concurrent.thread
 
-class V8Messenger(v8: V8): V8InspectorDelegate {
+class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8InspectorDelegate {
     private val dtoMapper: ObjectMapper = ObjectMapper()
-    private val chromeMessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject>())
+    private val chromeMessageQueue =
+        Collections.synchronizedMap(LinkedHashMap<String, JSONObject>())
     private val v8ScriptMap = mutableMapOf<String, String>()
     private val v8MessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject?>())
     private val pendingMessageQueue = Collections.synchronizedList(mutableListOf<PendingResponse>())
@@ -29,6 +30,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
 
     /**
      * Pass a method and params through to J2V8 to get the response.
+     *
      */
     fun getV8Result(method: String, params: JSONObject?): String? {
         val pendingMessage = PendingResponse(method, nextDispatchId.incrementAndGet())
@@ -36,7 +38,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
 
         v8MessageQueue[method] = params ?: JSONObject()
         if (debuggerState == DebuggerState.Connected) {
-            dispatchMessage(method, params)
+            dispatchMessage(method, params, true)
         }
 
         while (pendingMessage.response.isNullOrBlank()) {
@@ -93,7 +95,8 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         val message = dtoMapper.convertValue(JSONObject(p0), V8Response::class.java)
         if (message.isResponse) {
             // This is a command response
-            val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.id }
+            val pendingMessage =
+                pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.id }
             if (pendingMessage != null) {
                 pendingMessage.response = message.result?.optString("result")
             }
@@ -102,8 +105,14 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
 
             when (val responseMethod = message.method) {
                 Protocol.Debugger.ScriptParsed -> handleScriptParsedEvent(responseParams)
-                Protocol.Debugger.BreakpointResolved -> handleBreakpointResolvedEvent(responseParams, responseMethod)
-                Protocol.Debugger.Paused -> handleDebuggerPausedEvent(responseParams, responseMethod)
+                Protocol.Debugger.BreakpointResolved -> handleBreakpointResolvedEvent(
+                    responseParams,
+                    responseMethod
+                )
+                Protocol.Debugger.Paused -> handleDebuggerPausedEvent(
+                    responseParams,
+                    responseMethod
+                )
                 Protocol.Debugger.Resumed -> handleDebuggerResumedEvent()
             }
         }
@@ -116,7 +125,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
-        if (debuggerState == DebuggerState.Disconnected){
+        if (debuggerState == DebuggerState.Disconnected) {
             dispatchMessage(Protocol.Debugger.Resume)
         } else {
             if (responseParams != null) {
@@ -128,7 +137,8 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     private fun handleScriptParsedEvent(responseParams: JSONObject?) {
-        val scriptParsedEvent = dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
+        val scriptParsedEvent =
+            dtoMapper.convertValue(responseParams, ScriptParsedEventRequest::class.java)
         if (scriptParsedEvent.url.isNotEmpty()) {
             // Get the V8 Script ID to map to the Chrome ScriptId (stored in url)
             v8ScriptMap[scriptParsedEvent.scriptId] = scriptParsedEvent.url
@@ -139,7 +149,10 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
      * For BreakpointResolved events, we need to convert the scriptId from the J2V8 scriptId
      * to the Chrome DevTools scriptId before passing it through
      */
-    private fun handleBreakpointResolvedEvent(responseParams: JSONObject?, responseMethod: String?) {
+    private fun handleBreakpointResolvedEvent(
+        responseParams: JSONObject?,
+        responseMethod: String?
+    ) {
         val breakpointResolvedEvent =
             dtoMapper.convertValue(responseParams, BreakpointResolvedEvent::class.java)
         val location = breakpointResolvedEvent.location
@@ -161,11 +174,16 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
      * otherwise we can send now.
      * Some messages are only relevant while paused so ignore them if it's not
      */
-    fun sendMessage(message: String, params: JSONObject? = null, runOnlyWhenPaused: Boolean = false) {
+    fun sendMessage(
+        method: String,
+        params: JSONObject? = null,
+        crossThread: Boolean,
+        runOnlyWhenPaused: Boolean = false
+    ) {
         if (debuggerState == DebuggerState.Paused) {
-            v8MessageQueue[message] = params
+            v8MessageQueue[method] = params
         } else if (!runOnlyWhenPaused) {
-            dispatchMessage(message, params)
+            dispatchMessage(method = method, params = params, crossTread = crossThread)
         }
     }
 
@@ -179,10 +197,17 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     /**
      * Pass message to J2V8
      * If we're awaiting a response in the pendingMessageQueue, use the Id and set to pending
+     *
+     * Note: this method must be run under the same thread as v8
      */
-    private fun dispatchMessage(method: String, params: JSONObject? = null) {
+    private fun dispatchMessage(
+        method: String,
+        params: JSONObject? = null,
+        crossTread: Boolean = false
+    ) {
         val messageId: Int
-        val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
+        val pendingMessage =
+            pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
         if (pendingMessage != null) {
             pendingMessage.pending = true
             messageId = pendingMessage.messageId
@@ -190,10 +215,19 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             messageId = nextDispatchId.incrementAndGet()
         }
         val message = JSONObject()
-            .put("id",messageId)
-            .put("method",method)
-            .put("params",params)
+            .put("id", messageId)
+            .put("method", method)
+            .put("params", params)
         logger.d(TAG, "dispatching $message")
+        if (crossTread) {
+            v8Executor?.execute { submitMessageToJ2v8(message) }
+        } else {
+            submitMessageToJ2v8(message)
+        }
+    }
+
+    private fun submitMessageToJ2v8(message: JSONObject) {
+        logger.d(TAG, "submitMessageToJ2v8: $message")
         v8Inspector?.dispatchProtocolMessage(message.toString())
     }
 
@@ -208,8 +242,8 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
 
     internal enum class DebuggerState {
         Disconnected,
+        Connected,
         Paused,
-        Connected
     }
 
 
