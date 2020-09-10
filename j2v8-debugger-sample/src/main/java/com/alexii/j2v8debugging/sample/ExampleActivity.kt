@@ -10,8 +10,9 @@ import com.alexii.j2v8debugging.R
 import com.eclipsesource.v8.V8
 import com.google.android.material.snackbar.Snackbar
 import dagger.android.AndroidInjection
-import kotlinx.android.synthetic.main.activity_example.fab
-import kotlinx.android.synthetic.main.activity_example.toolbar
+import kotlinx.android.synthetic.main.activity_example.*
+import kotlinx.android.synthetic.main.content_example.*
+import java.lang.Exception
 import java.util.Random
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -40,6 +41,28 @@ class ExampleActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_example)
         setSupportActionBar(toolbar)
+
+        scriptPostfix = 1 - scriptPostfix
+        val scriptToDebug = "${scriptName}${scriptPostfix}"
+        scriptText.setText(simpleScriptProvider.getSource(scriptToDebug))
+
+        fab2.setOnClickListener{ view ->
+            val jsScript = scriptText.text.toString()
+
+            v8Executor.submit{
+                try {
+                    val result = v8.executeScript(jsScript)
+                    println("[v8 execution result: ] $result")
+
+                    Snackbar.make(view, "V8 answers: $result", Snackbar.LENGTH_SHORT)
+                        .setAction("V8Action", null).show()
+                } catch (e: Exception){
+                    Snackbar.make(view, "V8 answers: ${e.message}", Snackbar.LENGTH_SHORT)
+                        .setAction("V8Action", null).show()
+
+                }
+            }
+        }
 
         fab.setOnClickListener { view ->
             scriptPostfix = 1 - scriptPostfix

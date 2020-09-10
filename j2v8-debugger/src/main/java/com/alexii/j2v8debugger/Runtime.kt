@@ -43,6 +43,6 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        adaptee.evaluate(peer, params)
+        return adaptee.evaluate(peer, params)
     }
 }
