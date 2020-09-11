@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.*
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import io.mockk.Runs
@@ -57,7 +58,7 @@ class DebuggerTest {
 
         verify (exactly = 1){mapperMock.convertValue(eq(jsonParams), eq(requestStub::class.java))}
 
-        verify { v8Messenger.sendMessage(method = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
+        verify { v8Messenger.sendMessage(method = CdpMethod.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
 
         assertTrue(response is SetBreakpointByUrlResponse)
         val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
@@ -99,7 +100,7 @@ class DebuggerTest {
         val jsonResult = JSONObject().put(UUID.randomUUID().toString(), UUID.randomUUID().toString())
 
         every {
-            v8Messenger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
+            v8Messenger.getV8Result(CdpMethod.Debugger.EvaluateOnCallFrame, jsonParamsMock)
         }.returns(jsonResult.toString())
 
 
@@ -115,7 +116,7 @@ class DebuggerTest {
         debugger.initialize(mockk(), v8Messenger)
         val jsonResult = slot<JSONObject>()
         every {
-            v8Messenger.sendMessage(method = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
+            v8Messenger.sendMessage(method = CdpMethod.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
         } just Runs
 
         debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))

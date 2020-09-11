@@ -1,5 +1,6 @@
-package com.alexii.j2v8debugger
+package com.alexii.j2v8debugger.model
 
+import com.alexii.j2v8debugger.StethoHelper
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
@@ -65,7 +66,8 @@ internal class SetBreakpointByUrlRequest : JsonRpcResult {
 }
 
 internal class SetBreakpointByUrlResponse(
-        request: SetBreakpointByUrlRequest) : JsonRpcResult {
+        request: SetBreakpointByUrlRequest
+) : JsonRpcResult {
     @field:JsonProperty
     @JvmField
     val breakpointId = "1:${request.lineNumber}:${request.columnNumber}:${request.scriptId}"

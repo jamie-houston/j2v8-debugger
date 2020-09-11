@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.SetBreakpointByUrlRequest
 import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONObject
 import org.junit.jupiter.api.Assertions.assertEquals

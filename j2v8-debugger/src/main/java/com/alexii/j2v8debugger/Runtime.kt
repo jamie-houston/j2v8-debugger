@@ -1,5 +1,7 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.EvaluateOnCallFrameResult
+import com.alexii.j2v8debugger.model.CdpMethod
 import com.alexii.j2v8debugger.model.StethoJsonRpcResult
 import com.alexii.j2v8debugger.utils.logger
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
@@ -17,19 +19,12 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  * Runtime Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  */
 @Suppress("UNUSED_PARAMETER", "unused")
-class Runtime(replFactory: RuntimeReplFactory?) : BaseCdtDomain(), ChromeDevtoolsDomain {
-    private val adaptee = FacebookRuntimeBase(replFactory)
-    private var v8Executor: ExecutorService? = null
+class Runtime : BaseCdtDomain(), ChromeDevtoolsDomain {
     var dtoMapper: ObjectMapper = ObjectMapper()
-
-    fun initialize(v8Messenger: V8Messenger, v8Executor: ExecutorService) {
-        this.v8Messenger = v8Messenger
-        this.v8Executor = v8Executor
-    }
 
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        val method = Protocol.Runtime.GetProperties
+        val method = CdpMethod.Runtime.GetProperties
         logger.d(TAG, "$method $params")
 
         var resultStr: String? = getV8Result(method, params)
@@ -43,7 +38,7 @@ class Runtime(replFactory: RuntimeReplFactory?) : BaseCdtDomain(), ChromeDevtool
      */
     @ChromeDevtoolsMethod
     fun releaseObject(peer: JsonRpcPeer?, params: JSONObject?) {
-        val method = Protocol.Runtime.ReleaseObject
+        val method = CdpMethod.Runtime.ReleaseObject
 
         logger.d(TAG, "$method $params")
         v8Messenger?.sendMessage(method, params,crossThread = true)
@@ -51,28 +46,49 @@ class Runtime(replFactory: RuntimeReplFactory?) : BaseCdtDomain(), ChromeDevtool
 
     @ChromeDevtoolsMethod
     fun releaseObjectGroup(peer: JsonRpcPeer?, params: JSONObject?) {
-        val method = Protocol.Runtime.ReleaseObjectGroup
+        val method = CdpMethod.Runtime.ReleaseObjectGroup
         logger.d(TAG, "$method $params")
         v8Messenger?.sendMessage(method, params,crossThread = true)
     }
 
     @ChromeDevtoolsMethod
     fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        val method = Protocol.Runtime.CallFunctionOn
+        val method = CdpMethod.Runtime.CallFunctionOn
         logger.d(TAG, "$method $params")
         return getV8ResultAsJsonRpcResult(method, params)
     }
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        logger.d(TAG, "evaluate: $params")
-        var result: String? = getV8Result(Protocol.Runtime.Evaluate, params)
-        return EvaluateOnCallFrameResult(JSONObject(result))
+        val method = CdpMethod.Runtime.Evaluate
+        logger.d(TAG, "$method $params")
+        return getV8ResultAsJsonRpcResult(method, params)
     }
 
     @ChromeDevtoolsMethod
-    fun CompileScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        val method = Protocol.Runtime.CallFunctionOn
+    fun compileScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = CdpMethod.Runtime.CompileScript
+        logger.d(TAG, "$method $params")
+        return getV8ResultAsJsonRpcResult(method, params)
+    }
+
+    @ChromeDevtoolsMethod
+    fun awaitPromise(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = CdpMethod.Runtime.AwaitPromise
+        logger.d(TAG, "$method $params")
+        return getV8ResultAsJsonRpcResult(method, params)
+    }
+
+    @ChromeDevtoolsMethod
+    fun runScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = CdpMethod.Runtime.RunScript
+        logger.d(TAG, "$method $params")
+        return getV8ResultAsJsonRpcResult(method, params)
+    }
+
+    @ChromeDevtoolsMethod
+    fun queryObjects(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = CdpMethod.Runtime.QueryObjects
         logger.d(TAG, "$method $params")
         return getV8ResultAsJsonRpcResult(method, params)
     }

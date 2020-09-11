@@ -1,6 +1,6 @@
-package com.alexii.j2v8debugger
+package com.alexii.j2v8debugger.model
 
-object Protocol {
+object CdpMethod {
     /***
      * Methods in https://chromedevtools.github.io/devtools-protocol/tot/Debugger/
      */
@@ -10,6 +10,7 @@ object Protocol {
         // cdt methods
         val ContinueToLocation = "$domain.continueToLocation"
         val EvaluateOnCallFrame = "$domain.evaluateOnCallFrame"
+        val GetPossibleBreakpoints = "$domain.getPossibleBreakpoints"
         val Enable = "$domain.enable"
         val Pause = "$domain.pause"
         val RemoveBreakpoint = "$domain.removeBreakpoint"
@@ -23,6 +24,7 @@ object Protocol {
         val StepInto = "$domain.stepInto"
         val StepOut = "$domain.stepOut"
         val StepOver = "$domain.stepOver"
+        val SearchInContent = "$domain.searchInContent"
         val GetFunctionDetails = "$domain.getFunctionDetails"
         val SetOverlayMessage = "$domain.setOverlayMessage"
 
@@ -55,5 +57,14 @@ object Protocol {
         val RunScript = "$domain.runScript"
         val SetAsyncCallStackDepth = "$domain.setAsyncCallStackDepth"
         val RunIfWaitingForDebugger = "$domain.runIfWaitingForDebugger"
+    }
+
+    /**
+     * Methods in https://chromedevtools.github.io/devtools-protocol/tot/Console
+     * doc says it's deprecated, however cdt still sends the messages
+     */
+    object Console {
+        private val domain = "Console"
+        val ClearMessages = "$domain.clearMessages"
     }
 }
