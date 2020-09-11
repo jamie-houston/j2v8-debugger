@@ -33,6 +33,9 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
 
         v8MessageQueue[method] = params ?: JSONObject()
         while (pendingMessage.response.isNullOrBlank()) {
+            if (debuggerState != DebuggerState.Paused){
+                Thread.sleep(10)
+            }
             // wait for response from server
         }
         pendingMessageQueue.remove(pendingMessage)

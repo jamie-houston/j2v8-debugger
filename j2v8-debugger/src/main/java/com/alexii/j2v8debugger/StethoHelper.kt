@@ -152,7 +152,7 @@ object StethoHelper {
         v8Messenger: V8Messenger
     ) {
         chromeDebugger.initialize(v8Executor, v8Messenger)
-        chromeRuntime.initialize(v8Messenger)
+        chromeRuntime.initialize(v8Executor, v8Messenger)
     }
 
     /**
