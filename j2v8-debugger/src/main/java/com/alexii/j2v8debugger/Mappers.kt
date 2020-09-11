@@ -42,6 +42,16 @@ internal class GetScriptSourceResponse(
         val scriptSource: String
 ) : JsonRpcResult
 
+internal class EvaluateRequest : JsonRpcResult {
+    @field:JsonProperty
+    @JvmField
+    var objectGroup: String? = null
+
+    @field:JsonProperty
+    @JvmField
+    var expression: String? = null
+}
+
 internal class SetBreakpointByUrlRequest : JsonRpcResult {
     @field:JsonProperty
     @JvmField

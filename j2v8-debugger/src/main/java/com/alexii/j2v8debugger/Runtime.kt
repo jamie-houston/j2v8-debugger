@@ -58,8 +58,15 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val request = dtoMapper.convertValue(params, EvaluateRequest::class.java)
+
+        if (!request.objectGroup.equals("console")) {
+            return EvaluateOnCallFrameResult(JSONObject("{'wasThrown': true, 'exceptionDetails': 'Not supported by FAB'}"))
+        }
+
         logger.d(TAG, "evaluate: $params")
-        var result: String? = v8Messenger?.getV8Result(Protocol.Runtime.Evaluate, params)
+        val result: String? = v8Messenger?.getV8Result(Protocol.Runtime.Evaluate, params)
+        logger.d(TAG, "result: $result")
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 
