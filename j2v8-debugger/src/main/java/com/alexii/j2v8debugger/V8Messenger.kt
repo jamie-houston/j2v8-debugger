@@ -1,5 +1,11 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.*
+import com.alexii.j2v8debugger.model.BreakpointResolvedEvent
+import com.alexii.j2v8debugger.model.LocationResponse
+import com.alexii.j2v8debugger.model.ScriptParsedEventRequest
+import com.alexii.j2v8debugger.model.V8Response
+import com.alexii.j2v8debugger.model.replaceScriptId
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
@@ -30,7 +36,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
 
     /**
      * Pass a method and params through to J2V8 to get the response.
-     *
+     * it's synchronized call even it waits for j2v8 to finish its work in separate thread
      */
     fun getV8Result(method: String, params: JSONObject?): String? {
         val pendingMessage = PendingResponse(method, nextDispatchId.incrementAndGet())
@@ -41,7 +47,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
             dispatchMessage(method, params, true)
         }
 
-        while (pendingMessage.response.isNullOrBlank()) {
+        while (pendingMessage.status != MessageState.GotResponse) {
             if (debuggerState == DebuggerState.Connected) {
                 Thread.sleep(10)
             }
@@ -52,6 +58,25 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
     }
 
     /**
+     * Send messages to J2V8
+     * If debugger is paused, they will be queued to send in [waitFrontendMessageOnPause]
+     * otherwise we can send now.
+     * Some messages are only relevant while paused so ignore them if it's not
+     */
+    fun sendMessage(
+        method: String,
+        params: JSONObject? = null,
+        crossThread: Boolean,
+        runOnlyWhenPaused: Boolean = false
+    ) {
+        if (debuggerState == DebuggerState.Paused) {
+            v8MessageQueue[method] = params
+        } else if (!runOnlyWhenPaused) {
+            dispatchMessage(method = method, params = params, crossTread = crossThread)
+        }
+    }
+
+    /**
      * This method is called continuously while J2V8 is paused.
      * Any communication must be done inside of this method while debugger is paused.
      */
@@ -59,7 +84,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
         if (debuggerState != DebuggerState.Paused) {
             // If we haven't attached to chrome yet, resume code (or else we're stuck)
             logger.d(TAG, "Debugger paused without connection.  Resuming J2V8")
-            dispatchMessage(Protocol.Debugger.Resume)
+            dispatchMessage(CdpMethod.Debugger.Resume)
         } else {
             // Check for messages to send to J2V8
             if (v8MessageQueue.any()) {
@@ -80,7 +105,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
                     }
                 } else {
                     // We can't send messages to chrome if it's not attached (networkPeerManager null) so resume debugger
-                    dispatchMessage(Protocol.Debugger.Resume)
+                    dispatchMessage(CdpMethod.Debugger.Resume)
                 }
                 chromeMessageQueue.clear()
             }
@@ -95,25 +120,25 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
         val message = dtoMapper.convertValue(JSONObject(p0), V8Response::class.java)
         if (message.isResponse) {
             // This is a command response
-            val pendingMessage =
-                pendingMessageQueue.firstOrNull { msg -> msg.pending && msg.messageId == message.id }
-            if (pendingMessage != null) {
-                pendingMessage.response = message.result?.optString("result")
-            }
+            pendingMessageQueue.firstOrNull { msg -> msg.status == MessageState.SentToJ2v8 && msg.messageId == message.id }
+                ?.apply {
+                    response = message.result?.optString("result")
+                    status = MessageState.GotResponse
+                }
         } else {
             val responseParams = message.params
 
             when (val responseMethod = message.method) {
-                Protocol.Debugger.ScriptParsed -> handleScriptParsedEvent(responseParams)
-                Protocol.Debugger.BreakpointResolved -> handleBreakpointResolvedEvent(
+                CdpMethod.Debugger.ScriptParsed -> handleScriptParsedEvent(responseParams)
+                CdpMethod.Debugger.BreakpointResolved -> handleBreakpointResolvedEvent(
                     responseParams,
                     responseMethod
                 )
-                Protocol.Debugger.Paused -> handleDebuggerPausedEvent(
+                CdpMethod.Debugger.Paused -> handleDebuggerPausedEvent(
                     responseParams,
                     responseMethod
                 )
-                Protocol.Debugger.Resumed -> handleDebuggerResumedEvent()
+                CdpMethod.Debugger.Resumed -> handleDebuggerResumedEvent()
             }
         }
     }
@@ -126,7 +151,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
 
     private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
         if (debuggerState == DebuggerState.Disconnected) {
-            dispatchMessage(Protocol.Debugger.Resume)
+            dispatchMessage(CdpMethod.Debugger.Resume)
         } else {
             if (responseParams != null) {
                 debuggerState = DebuggerState.Paused
@@ -168,24 +193,6 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
             dtoMapper.convertValue(response, JSONObject::class.java)
     }
 
-    /**
-     * Send messages to J2V8
-     * If debugger is paused, they will be queued to send in [waitFrontendMessageOnPause]
-     * otherwise we can send now.
-     * Some messages are only relevant while paused so ignore them if it's not
-     */
-    fun sendMessage(
-        method: String,
-        params: JSONObject? = null,
-        crossThread: Boolean,
-        runOnlyWhenPaused: Boolean = false
-    ) {
-        if (debuggerState == DebuggerState.Paused) {
-            v8MessageQueue[method] = params
-        } else if (!runOnlyWhenPaused) {
-            dispatchMessage(method = method, params = params, crossTread = crossThread)
-        }
-    }
 
     /**
      * Change debugger state when DevTools connects and disconnects
@@ -207,9 +214,9 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
     ) {
         val messageId: Int
         val pendingMessage =
-            pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
+            pendingMessageQueue.firstOrNull { msg -> msg.method == method && msg.status == MessageState.Pending }
         if (pendingMessage != null) {
-            pendingMessage.pending = true
+            pendingMessage.status = MessageState.SentToJ2v8
             messageId = pendingMessage.messageId
         } else {
             messageId = nextDispatchId.incrementAndGet()
@@ -218,6 +225,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
             .put("id", messageId)
             .put("method", method)
             .put("params", params)
+
         logger.d(TAG, "dispatching $message")
         if (crossTread) {
             v8Executor?.execute { submitMessageToJ2v8(message) }
@@ -237,7 +245,13 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
      */
     private data class PendingResponse(val method: String, var messageId: Int) {
         var response: String? = null
-        var pending = false
+        var status: MessageState = MessageState.Pending
+    }
+
+    internal enum class MessageState {
+        Pending,
+        SentToJ2v8,
+        GotResponse,
     }
 
     internal enum class DebuggerState {

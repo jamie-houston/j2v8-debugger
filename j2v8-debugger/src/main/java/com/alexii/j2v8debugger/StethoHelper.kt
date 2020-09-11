@@ -16,6 +16,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
 object StethoHelper {
     private var debugger: Debugger? = null
     private var runtime: Runtime? = null
+    private var console: Console? = null
 
     private var v8MessengerRef: WeakReference<V8Messenger>? = null
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
@@ -93,9 +94,11 @@ object StethoHelper {
         }
 
         debugger = Debugger(scriptSourceProvider)
-        runtime = Runtime(factory)
+        runtime = Runtime()
+        console = Console()
         inspectorModules.add(debugger!!)
         inspectorModules.add(runtime!!)
+        inspectorModules.add(console!!)
 
         bindV8ToChromeDebuggerIfReady()
 
@@ -130,6 +133,7 @@ object StethoHelper {
         bindV8DebuggerToChromeDebugger(
             debugger!!,
             runtime!!,
+            console!!,
             v8Executor,
             v8Messenger
         )
@@ -142,11 +146,13 @@ object StethoHelper {
     private fun bindV8DebuggerToChromeDebugger(
         chromeDebugger: Debugger,
         chromeRuntime: Runtime,
+        console: Console,
         v8Executor: ExecutorService,
         v8Messenger: V8Messenger
     ) {
         chromeDebugger.initialize(v8Executor, v8Messenger)
-        chromeRuntime.initialize(v8Messenger, v8Executor)
+        chromeRuntime.initialize(v8Messenger)
+        console.initialize(v8Messenger)
     }
 
     /**

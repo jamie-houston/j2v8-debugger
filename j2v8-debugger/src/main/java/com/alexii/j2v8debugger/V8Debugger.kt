@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.CdpMethod
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.eclipsesource.v8.V8
 import org.json.JSONObject
@@ -31,19 +32,19 @@ object V8Debugger {
             val messenger = V8Messenger(runtime, v8Executor)
             with(messenger) {
                 // Default Chrome DevTool protocol messages
-                sendMessage(Protocol.Runtime.Enable, crossThread = false)
+                sendMessage(CdpMethod.Runtime.Enable, crossThread = false)
 
                 sendMessage(
-                    Protocol.Debugger.Enable,
+                    CdpMethod.Debugger.Enable,
                     JSONObject().put("maxScriptsCacheSize", MAX_SCRIPT_CACHE_SIZE),
                     crossThread = false
                 )
                 sendMessage(
-                    Protocol.Debugger.SetAsyncCallStackDepth,
+                    CdpMethod.Debugger.SetAsyncCallStackDepth,
                     JSONObject().put("maxDepth", MAX_DEPTH),
                     crossThread = false
                 )
-                sendMessage(Protocol.Runtime.RunIfWaitingForDebugger, crossThread = false)
+                sendMessage(CdpMethod.Runtime.RunIfWaitingForDebugger, crossThread = false)
             }
 
             StethoHelper.initializeWithV8Messenger(messenger, v8Executor)

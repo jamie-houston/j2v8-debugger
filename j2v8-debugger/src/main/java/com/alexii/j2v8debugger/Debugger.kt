@@ -1,5 +1,11 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.*
+import com.alexii.j2v8debugger.model.GetScriptSourceRequest
+import com.alexii.j2v8debugger.model.GetScriptSourceResponse
+import com.alexii.j2v8debugger.model.ScriptParsedEvent
+import com.alexii.j2v8debugger.model.SetBreakpointByUrlRequest
+import com.alexii.j2v8debugger.model.SetBreakpointByUrlResponse
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
@@ -7,17 +13,16 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
+import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import org.json.JSONObject
-import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
-import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
 /**
  * Debugger Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  */
 internal class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
-) : FacebookDebuggerStub() {
+) : BaseCdtDomain(), ChromeDevtoolsDomain {
     var dtoMapper: ObjectMapper = ObjectMapper()
 
     /**
@@ -26,7 +31,6 @@ internal class Debugger(
      * XXX: consider using ThreadBound from Facebook with an implementation, which uses Executor.
      */
     private var v8Executor: ExecutorService? = null
-    private var v8Messenger: V8Messenger? = null
     private var connectedPeer: JsonRpcPeer? = null
     private val breakpointsAdded = mutableListOf<String>()
 
@@ -44,11 +48,11 @@ internal class Debugger(
     internal fun onScriptsChanged() {
         scriptSourceProvider.allScriptIds
             .map { ScriptParsedEvent(it) }
-            .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
+            .forEach { connectedPeer?.invokeMethod(CdpMethod.Debugger.ScriptParsed, it, null) }
     }
 
     @ChromeDevtoolsMethod
-    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+    fun enable(peer: JsonRpcPeer, params: JSONObject?) {
         runStethoSafely {
             connectedPeer = peer
 
@@ -67,7 +71,7 @@ internal class Debugger(
             breakpointsAdded.forEach { breakpointId ->
                 v8Executor?.execute {
                     v8Messenger?.sendMessage(
-                        method = Protocol.Debugger.RemoveBreakpoint,
+                        method = CdpMethod.Debugger.RemoveBreakpoint,
                         params = JSONObject().put("breakpointId", breakpointId),
                         crossThread = false
                     )
@@ -86,13 +90,37 @@ internal class Debugger(
     @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
-        val method = Protocol.Debugger.EvaluateOnCallFrame
-        var result: String? = ""
+        val method = CdpMethod.Debugger.EvaluateOnCallFrame
+        logger.d(Runtime.TAG, "$method: $params")
+        var result: String? = getV8Result(method, params)
+        return if (result.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(result)
+    }
 
-        v8Executor?.execute {
-            result = v8Messenger?.getV8Result(method, params)
-        }
-        return EvaluateOnCallFrameResult(JSONObject(result))
+    @Suppress("UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun getPossibleBreakpoints(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
+        val method = CdpMethod.Debugger.GetPossibleBreakpoints
+        logger.d(Runtime.TAG, "$method: $params")
+        var result: String? = getV8Result(method, params)
+        return if (result.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(result)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun searchInContent(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
+        val method = CdpMethod.Debugger.SearchInContent
+        logger.d(Runtime.TAG, "$method: $params")
+        var result: String? = getV8Result(method, params)
+        return if (result.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(result)
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun getFunctionDetails(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
+        val method = CdpMethod.Debugger.GetFunctionDetails
+        logger.d(Runtime.TAG, "$method: $params")
+        var result: String? = getV8Result(method, params)
+        return if (result.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(result)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -101,15 +129,16 @@ internal class Debugger(
         // This was changed from skipped to skip
         // https://chromium.googlesource.com/chromium/src/third_party/WebKit/Source/platform/v8_inspector/+/e7a781c04b7822a46e7de465623152ff1b45bdac%5E%21/
         v8Messenger?.sendMessage(
-            Protocol.Debugger.SetSkipAllPauses,
+            CdpMethod.Debugger.SetSkipAllPauses,
             JSONObject().put("skip", params?.getBoolean("skipped")),
             crossThread = true,
             runOnlyWhenPaused = true
         )
     }
 
+    @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
-    override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
+    fun disable(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.setDebuggerConnected(false)
     }
 
@@ -137,7 +166,7 @@ internal class Debugger(
         runStethoAndV8Safely {
             v8Executor?.execute {
                 v8Messenger?.sendMessage(
-                    Protocol.Debugger.SetBreakpointByUrl,
+                    CdpMethod.Debugger.SetBreakpointByUrl,
                     dtoMapper.convertValue(request, JSONObject::class.java),
                     crossThread = false
                 )
@@ -152,14 +181,12 @@ internal class Debugger(
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
+        val method = CdpMethod.Debugger.RemoveBreakpoint
         runStethoAndV8Safely {
-            v8Executor?.execute {
-                v8Messenger?.sendMessage(
-                    Protocol.Debugger.RemoveBreakpoint,
-                    params,
-                    crossThread = false
-                )
-            }
+            v8Messenger?.sendMessage(
+                method, params,
+                crossThread = true
+            )
         }
         breakpointsAdded.remove(params.getString("breakpointId"))
     }
@@ -169,7 +196,7 @@ internal class Debugger(
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject) {
         runStethoAndV8Safely {
             v8Messenger?.sendMessage(
-                Protocol.Debugger.SetBreakpointsActive, params,
+                CdpMethod.Debugger.SetBreakpointsActive, params,
                 crossThread = true
             )
         }
@@ -182,7 +209,7 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(
-            Protocol.Debugger.Resume,
+            CdpMethod.Debugger.Resume,
             params,
             crossThread = true,
             runOnlyWhenPaused = true
@@ -193,7 +220,7 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(
-            Protocol.Debugger.Pause,
+            CdpMethod.Debugger.Pause,
             params,
             crossThread = true,
             runOnlyWhenPaused = true
@@ -204,7 +231,7 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(
-            Protocol.Debugger.StepOver,
+            CdpMethod.Debugger.StepOver,
             params,
             crossThread = true,
             runOnlyWhenPaused = true
@@ -215,7 +242,7 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(
-            Protocol.Debugger.StepInto, params,
+            CdpMethod.Debugger.StepInto, params,
             crossThread = true, runOnlyWhenPaused = true
         )
     }
@@ -223,7 +250,39 @@ internal class Debugger(
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params,  crossThread = true, runOnlyWhenPaused = true)
+        v8Messenger?.sendMessage(CdpMethod.Debugger.StepOut, params,  crossThread = true, runOnlyWhenPaused = true)
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?) {
+        // developer tool seems still send this event to show a overlay message, v8 doesn't have it.
+        // do nothing here
+
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun setPauseOnExceptions(peer: JsonRpcPeer, params: JSONObject?) {
+        val method = CdpMethod.Debugger.SetPauseOnExceptions
+        logger.d(Runtime.TAG, "$method: $params")
+        v8Messenger?.sendMessage(method, params, crossThread = true)
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun continueToLocation(peer: JsonRpcPeer, params: JSONObject?) {
+        val method = CdpMethod.Debugger.ContinueToLocation
+        logger.d(Runtime.TAG, "$method: $params")
+        v8Messenger?.sendMessage(method, params, crossThread = true, runOnlyWhenPaused = true)
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun setVariableValue(peer: JsonRpcPeer, params: JSONObject?) {
+        val method = CdpMethod.Debugger.SetVariableValue
+        logger.d(Runtime.TAG, "$method: $params")
+        v8Messenger?.sendMessage(method, params, crossThread = true, runOnlyWhenPaused = true)
     }
 
     /**
