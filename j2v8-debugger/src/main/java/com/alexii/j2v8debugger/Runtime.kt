@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.StethoJsonRpcResult
 import com.alexii.j2v8debugger.utils.logger
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -9,7 +10,6 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
@@ -17,8 +17,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  * Runtime Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  */
 @Suppress("UNUSED_PARAMETER", "unused")
-class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
-    private var v8Messenger: V8Messenger? = null
+class Runtime(replFactory: RuntimeReplFactory?) : BaseCdtDomain(), ChromeDevtoolsDomain {
     private val adaptee = FacebookRuntimeBase(replFactory)
     private var v8Executor: ExecutorService? = null
     var dtoMapper: ObjectMapper = ObjectMapper()
@@ -30,42 +29,52 @@ class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
 
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
-        logger.d(TAG, "getProperties $params")
-
         val method = Protocol.Runtime.GetProperties
+        logger.d(TAG, "$method $params")
 
-        var result: String? = v8Messenger?.getV8Result(method, params)
+        var resultStr: String? = getV8Result(method, params)
 
-        val jsonArray = if (result.isNullOrEmpty()) JSONArray() else JSONArray(result)
-        val jsonResult = GetPropertiesResult().put("result", jsonArray)
-
-        return jsonResult as JsonRpcResult
+        val jsonArray = if (resultStr.isNullOrEmpty()) JSONArray() else JSONArray(resultStr)
+        return StethoJsonRpcResult(jsonArray)
     }
 
     /**
      * Pass through the needed [FacebookRuntimeBase] methods
      */
     @ChromeDevtoolsMethod
-    fun releaseObject(peer: JsonRpcPeer?, params: JSONObject?) = adaptee.releaseObject(peer, params)
+    fun releaseObject(peer: JsonRpcPeer?, params: JSONObject?) {
+        val method = Protocol.Runtime.ReleaseObject
+
+        logger.d(TAG, "$method $params")
+        v8Messenger?.sendMessage(method, params,crossThread = true)
+    }
 
     @ChromeDevtoolsMethod
-    fun releaseObjectGroup(peer: JsonRpcPeer?, params: JSONObject?) =
-        adaptee.releaseObjectGroup(peer, params)
+    fun releaseObjectGroup(peer: JsonRpcPeer?, params: JSONObject?) {
+        val method = Protocol.Runtime.ReleaseObjectGroup
+        logger.d(TAG, "$method $params")
+        v8Messenger?.sendMessage(method, params,crossThread = true)
+    }
 
     @ChromeDevtoolsMethod
-    fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? =
-        adaptee.callFunctionOn(peer, params)
+    fun callFunctionOn(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = Protocol.Runtime.CallFunctionOn
+        logger.d(TAG, "$method $params")
+        return getV8ResultAsJsonRpcResult(method, params)
+    }
 
     @ChromeDevtoolsMethod
     fun evaluate(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
         logger.d(TAG, "evaluate: $params")
-        var result: String? = v8Messenger?.getV8Result(Protocol.Runtime.Evaluate, params)
+        var result: String? = getV8Result(Protocol.Runtime.Evaluate, params)
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 
     @ChromeDevtoolsMethod
-    fun compileScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
-        return adaptee.callFunctionOn(peer, params)
+    fun CompileScript(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
+        val method = Protocol.Runtime.CallFunctionOn
+        logger.d(TAG, "$method $params")
+        return getV8ResultAsJsonRpcResult(method, params)
     }
 
     companion object {

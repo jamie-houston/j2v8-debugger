@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.V8Response
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8
 import com.eclipsesource.v8.inspector.V8Inspector
@@ -30,7 +31,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
 
     /**
      * Pass a method and params through to J2V8 to get the response.
-     *
+     * it's synchronized call even it waits for j2v8 to finish its work in separate thread
      */
     fun getV8Result(method: String, params: JSONObject?): String? {
         val pendingMessage = PendingResponse(method, nextDispatchId.incrementAndGet())
@@ -49,6 +50,25 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
         }
         pendingMessageQueue.remove(pendingMessage)
         return pendingMessage.response
+    }
+
+    /**
+     * Send messages to J2V8
+     * If debugger is paused, they will be queued to send in [waitFrontendMessageOnPause]
+     * otherwise we can send now.
+     * Some messages are only relevant while paused so ignore them if it's not
+     */
+    fun sendMessage(
+        method: String,
+        params: JSONObject? = null,
+        crossThread: Boolean,
+        runOnlyWhenPaused: Boolean = false
+    ) {
+        if (debuggerState == DebuggerState.Paused) {
+            v8MessageQueue[method] = params
+        } else if (!runOnlyWhenPaused) {
+            dispatchMessage(method = method, params = params, crossTread = crossThread)
+        }
     }
 
     /**
@@ -168,24 +188,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
             dtoMapper.convertValue(response, JSONObject::class.java)
     }
 
-    /**
-     * Send messages to J2V8
-     * If debugger is paused, they will be queued to send in [waitFrontendMessageOnPause]
-     * otherwise we can send now.
-     * Some messages are only relevant while paused so ignore them if it's not
-     */
-    fun sendMessage(
-        method: String,
-        params: JSONObject? = null,
-        crossThread: Boolean,
-        runOnlyWhenPaused: Boolean = false
-    ) {
-        if (debuggerState == DebuggerState.Paused) {
-            v8MessageQueue[method] = params
-        } else if (!runOnlyWhenPaused) {
-            dispatchMessage(method = method, params = params, crossTread = crossThread)
-        }
-    }
+
 
     /**
      * Change debugger state when DevTools connects and disconnects

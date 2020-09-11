@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import com.alexii.j2v8debugger.model.StethoJsonRpcResult
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
@@ -7,6 +8,7 @@ import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.json.ObjectMapper
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
+import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
 import org.json.JSONObject
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
@@ -17,7 +19,7 @@ import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebugge
  */
 internal class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
-) : FacebookDebuggerStub() {
+) : BaseCdtDomain(), ChromeDevtoolsDomain {
     var dtoMapper: ObjectMapper = ObjectMapper()
 
     /**
@@ -26,7 +28,6 @@ internal class Debugger(
      * XXX: consider using ThreadBound from Facebook with an implementation, which uses Executor.
      */
     private var v8Executor: ExecutorService? = null
-    private var v8Messenger: V8Messenger? = null
     private var connectedPeer: JsonRpcPeer? = null
     private val breakpointsAdded = mutableListOf<String>()
 
@@ -48,7 +49,7 @@ internal class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+    fun enable(peer: JsonRpcPeer, params: JSONObject?) {
         runStethoSafely {
             connectedPeer = peer
 
@@ -87,12 +88,9 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
         val method = Protocol.Debugger.EvaluateOnCallFrame
-        var result: String? = ""
-
-        v8Executor?.execute {
-            result = v8Messenger?.getV8Result(method, params)
-        }
-        return EvaluateOnCallFrameResult(JSONObject(result))
+        logger.d(Runtime.TAG, "$method: $params")
+        var result: String? = getV8Result(method, params)
+        return if (result.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(result)
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -108,8 +106,9 @@ internal class Debugger(
         )
     }
 
+    @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
-    override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
+    fun disable(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.setDebuggerConnected(false)
     }
 
@@ -152,14 +151,12 @@ internal class Debugger(
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
+        val method = Protocol.Debugger.RemoveBreakpoint
         runStethoAndV8Safely {
-            v8Executor?.execute {
-                v8Messenger?.sendMessage(
-                    Protocol.Debugger.RemoveBreakpoint,
-                    params,
-                    crossThread = false
-                )
-            }
+            v8Messenger?.sendMessage(
+                method, params,
+                crossThread = true
+            )
         }
         breakpointsAdded.remove(params.getString("breakpointId"))
     }
@@ -224,6 +221,22 @@ internal class Debugger(
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params,  crossThread = true, runOnlyWhenPaused = true)
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun setOverlayMessage(peer: JsonRpcPeer, params: JSONObject?) {
+        // developer tool seems still send this event to show a overlay message, v8 doesn't have it.
+        // do nothing here
+
+    }
+
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun setPauseOnExceptions(peer: JsonRpcPeer, params: JSONObject?) {
+        val method = Protocol.Debugger.SetPauseOnExceptions
+        logger.d(Runtime.TAG, "$method: $params")
+        v8Messenger?.sendMessage(method, params, crossThread = true)
     }
 
     /**

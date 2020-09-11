@@ -24,6 +24,7 @@ object Protocol {
         val StepOut = "$domain.stepOut"
         val StepOver = "$domain.stepOver"
         val GetFunctionDetails = "$domain.getFunctionDetails"
+        val SetOverlayMessage = "$domain.setOverlayMessage"
 
         // events
         val BreakpointResolved = "$domain.breakpointResolved"
@@ -40,7 +41,7 @@ object Protocol {
     object Runtime{
         private val domain = "Runtime"
         val AwaitPromise = "$domain.awaitPromise"
-        val callFunctionOn = "$domain.callFunctionOn"
+        val CallFunctionOn = "$domain.callFunctionOn"
         val CompileScript = "$domain.compileScript"
         val Disable = "$domain.disable"
         val DiscardConsoleEntries = "$domain.discardConsoleEntries"

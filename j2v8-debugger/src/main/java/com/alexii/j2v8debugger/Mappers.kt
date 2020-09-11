@@ -100,31 +100,6 @@ internal class LocationResponse {
     var columnNumber: Int? = null
 }
 
-/**
- * Any message from J2V8
- * If it contains an id, it's a response from a request sent
- * Otherwise it's an event
- */
-internal class V8Response : JsonRpcResult {
-    val isResponse by lazy { (id != null) }
-
-    @field:JsonProperty
-    @JvmField
-    var id: Int? = null
-
-    @field:JsonProperty
-    @JvmField
-    var method: String? = null
-
-    @field:JsonProperty
-    @JvmField
-    var result: JSONObject? = null
-
-    @field:JsonProperty
-    @JvmField
-    var params: JSONObject? = null
-}
-
 internal class BreakpointResolvedEvent : JsonRpcResult {
     @field:JsonProperty
     @JvmField
