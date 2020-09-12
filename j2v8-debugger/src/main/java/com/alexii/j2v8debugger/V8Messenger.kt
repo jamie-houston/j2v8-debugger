@@ -15,6 +15,7 @@ import com.facebook.stetho.json.ObjectMapper
 import org.json.JSONObject
 import java.util.Collections
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.collections.LinkedHashMap
 
@@ -23,7 +24,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
     private val chromeMessageQueue =
         Collections.synchronizedMap(LinkedHashMap<String, JSONObject>())
     private val v8ScriptMap = mutableMapOf<String, String>()
-    private val v8MessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject?>())
+    private val v8MessageQueue = LinkedBlockingQueue<PendingResponse>()
     private val pendingMessageQueue = Collections.synchronizedList(mutableListOf<PendingResponse>())
     private val nextDispatchId = AtomicInteger(0)
     private var debuggerState = DebuggerState.Disconnected
@@ -39,22 +40,22 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
      * it's synchronized call even it waits for j2v8 to finish its work in separate thread
      */
     fun getV8Result(method: String, params: JSONObject?): String? {
-        val pendingMessage = PendingResponse(method, nextDispatchId.incrementAndGet())
-        pendingMessageQueue.add(pendingMessage)
+        val message = PendingResponse(method, nextDispatchId.incrementAndGet(), params)
+        pendingMessageQueue.add(message)
 
-        v8MessageQueue[method] = params ?: JSONObject()
+        v8MessageQueue.add(message)
         if (debuggerState == DebuggerState.Connected) {
-            dispatchMessage(method, params, true)
+            dispatchMessage(message.messageId, method, params, true)
         }
 
-        while (pendingMessage.status != MessageState.GotResponse) {
+        while (message.status != MessageState.GotResponse) {
             if (debuggerState == DebuggerState.Connected) {
                 Thread.sleep(10)
             }
             // wait for response from server
         }
-        pendingMessageQueue.remove(pendingMessage)
-        return pendingMessage.response
+        pendingMessageQueue.remove(message)
+        return message.response
     }
 
     /**
@@ -70,9 +71,14 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
         runOnlyWhenPaused: Boolean = false
     ) {
         if (debuggerState == DebuggerState.Paused) {
-            v8MessageQueue[method] = params
+            v8MessageQueue.add(PendingResponse(method, nextDispatchId.incrementAndGet(), params))
         } else if (!runOnlyWhenPaused) {
-            dispatchMessage(method = method, params = params, crossTread = crossThread)
+            dispatchMessage(
+                nextDispatchId.incrementAndGet(),
+                method = method,
+                params = params,
+                crossTread = crossThread
+            )
         }
     }
 
@@ -84,15 +90,13 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
         if (debuggerState != DebuggerState.Paused) {
             // If we haven't attached to chrome yet, resume code (or else we're stuck)
             logger.d(TAG, "Debugger paused without connection.  Resuming J2V8")
-            dispatchMessage(CdpMethod.Debugger.Resume)
+            dispatchMessage(nextDispatchId.incrementAndGet(), CdpMethod.Debugger.Resume)
         } else {
             // Check for messages to send to J2V8
-            if (v8MessageQueue.any()) {
-                for ((k, v) in v8MessageQueue) {
-                    logger.d(TAG, "Sending v8 $k with $v")
-                    dispatchMessage(k, v)
-                }
-                v8MessageQueue.clear()
+            while (v8MessageQueue.any()) {
+                val v = v8MessageQueue.remove()
+                logger.d(TAG, "Sending v8 ${v.method} with ${v.params}")
+                dispatchMessage(v.messageId, v.method, v.params)
             }
 
             // Check for messages to send to Chrome DevTools
@@ -105,7 +109,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
                     }
                 } else {
                     // We can't send messages to chrome if it's not attached (networkPeerManager null) so resume debugger
-                    dispatchMessage(CdpMethod.Debugger.Resume)
+                    dispatchMessage(nextDispatchId.incrementAndGet(), CdpMethod.Debugger.Resume)
                 }
                 chromeMessageQueue.clear()
             }
@@ -122,7 +126,8 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
             // This is a command response
             pendingMessageQueue.firstOrNull { msg -> msg.status == MessageState.SentToJ2v8 && msg.messageId == message.id }
                 ?.apply {
-                    response = message.result?.optString("result")
+                    response =
+                        if (message.error != null) p0 else message.result?.toString()
                     status = MessageState.GotResponse
                 }
         } else {
@@ -151,7 +156,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
 
     private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
         if (debuggerState == DebuggerState.Disconnected) {
-            dispatchMessage(CdpMethod.Debugger.Resume)
+            dispatchMessage(nextDispatchId.incrementAndGet(), CdpMethod.Debugger.Resume)
         } else {
             if (responseParams != null) {
                 debuggerState = DebuggerState.Paused
@@ -208,19 +213,15 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
      * Note: this method must be run under the same thread as v8
      */
     private fun dispatchMessage(
+        messageId: Int,
         method: String,
         params: JSONObject? = null,
         crossTread: Boolean = false
     ) {
-        val messageId: Int
         val pendingMessage =
             pendingMessageQueue.firstOrNull { msg -> msg.method == method && msg.status == MessageState.Pending }
-        if (pendingMessage != null) {
-            pendingMessage.status = MessageState.SentToJ2v8
-            messageId = pendingMessage.messageId
-        } else {
-            messageId = nextDispatchId.incrementAndGet()
-        }
+        pendingMessage?.status = MessageState.SentToJ2v8
+
         val message = JSONObject()
             .put("id", messageId)
             .put("method", method)
@@ -243,7 +244,11 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
      * Track messages waiting for responses.
      * These Ids are set when the message is created so the response can be tied back to the request
      */
-    private data class PendingResponse(val method: String, var messageId: Int) {
+    private data class PendingResponse(
+        val method: String,
+        val messageId: Int,
+        val params: JSONObject?
+    ) {
         var response: String? = null
         var status: MessageState = MessageState.Pending
     }

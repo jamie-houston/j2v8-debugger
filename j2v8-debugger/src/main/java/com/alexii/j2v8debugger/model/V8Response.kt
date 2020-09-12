@@ -26,5 +26,12 @@ internal class V8Response : JsonRpcResult {
 
     @field:JsonProperty
     @JvmField
+    var error: JSONObject? = null
+
+
+    @field:JsonProperty
+    @JvmField
     var params: JSONObject? = null
 }
+
+internal class V8Error

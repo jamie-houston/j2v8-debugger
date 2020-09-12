@@ -1,7 +1,10 @@
 package com.alexii.j2v8debugger
 
 import com.alexii.j2v8debugger.model.StethoJsonRpcResult
+import com.alexii.j2v8debugger.utils.logger
+import com.facebook.stetho.inspector.jsonrpc.JsonRpcException
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
+import com.facebook.stetho.inspector.jsonrpc.protocol.JsonRpcError
 import org.json.JSONObject
 
 open class BaseCdtDomain {
@@ -12,12 +15,23 @@ open class BaseCdtDomain {
         this.v8Messenger = v8Messenger
     }
 
-    fun getV8Result(method: String, params: JSONObject?): String? {
-        return v8Messenger?.getV8Result(method, params)
+    fun getV8ResultAsJsonRpcResult(method: String, params: JSONObject?): JsonRpcResult {
+        logger.d(Runtime.TAG, "$method $params")
+        var resultStr = getV8Result(method, params)
+        return if (resultStr.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(resultStr)
     }
 
-    fun getV8ResultAsJsonRpcResult(method: String, params: JSONObject?): JsonRpcResult {
-        var result: String? = getV8Result(method, params)
-        return if (result.isNullOrEmpty()) StethoJsonRpcResult() else StethoJsonRpcResult(result)
+    fun sendMessage(
+        method: String,
+        params: JSONObject? = null,
+        crossThread: Boolean,
+        runOnlyWhenPaused: Boolean = false
+    ) {
+        logger.d(Runtime.TAG, "$method $params")
+        v8Messenger?.sendMessage(method, params, crossThread, runOnlyWhenPaused)
+    }
+
+    private fun getV8Result(method: String, params: JSONObject?): String? {
+        return v8Messenger?.getV8Result(method, params)
     }
 }

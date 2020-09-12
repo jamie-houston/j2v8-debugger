@@ -7,9 +7,7 @@ import org.json.JSONObject
 class StethoJsonRpcResult: JSONObject, JsonRpcResult {
     constructor(): super()
 
-    constructor(result: String): super() {
-        this.put("result", JSONObject(result))
-    }
+    constructor(result: String): super(result)
 
     constructor(result: JSONObject): super() {
         this.put("result", result)
