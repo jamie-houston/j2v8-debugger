@@ -1,6 +1,6 @@
 package com.alexii.j2v8debugger
 
-import com.alexii.j2v8debugger.model.*
+import com.alexii.j2v8debugger.model.CdpMethod
 import com.alexii.j2v8debugger.model.GetScriptSourceRequest
 import com.alexii.j2v8debugger.model.GetScriptSourceResponse
 import com.alexii.j2v8debugger.model.ScriptParsedEvent
@@ -36,7 +36,7 @@ internal class Debugger(
 
     fun initialize(v8Executor: ExecutorService, v8Messenger: V8Messenger) {
         this.v8Executor = v8Executor
-        this.v8Messenger = v8Messenger
+        initialize(v8Messenger)
     }
 
     private fun validateV8Initialized() {

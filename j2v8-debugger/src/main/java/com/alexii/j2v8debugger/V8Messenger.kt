@@ -77,7 +77,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
                 nextDispatchId.incrementAndGet(),
                 method = method,
                 params = params,
-                crossTread = crossThread
+                crossThread = crossThread
             )
         }
     }
@@ -216,7 +216,7 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
         messageId: Int,
         method: String,
         params: JSONObject? = null,
-        crossTread: Boolean = false
+        crossThread: Boolean = false
     ) {
         val pendingMessage =
             pendingMessageQueue.firstOrNull { msg -> msg.method == method && msg.status == MessageState.Pending }
@@ -228,8 +228,8 @@ class V8Messenger(v8: V8, private val v8Executor: ExecutorService) : V8Inspector
             .put("params", params)
 
         logger.d(TAG, "dispatching $message")
-        if (crossTread) {
-            v8Executor?.execute { submitMessageToJ2v8(message) }
+        if (crossThread) {
+            v8Executor.execute { submitMessageToJ2v8(message) }
         } else {
             submitMessageToJ2v8(message)
         }

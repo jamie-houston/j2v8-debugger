@@ -54,7 +54,4 @@ class Runtime : BaseCdtDomain(), ChromeDevtoolsDomain {
     fun queryObjects(peer: JsonRpcPeer?, params: JSONObject?) =
         getV8ResultAsJsonRpcResult(CdpMethod.Runtime.QueryObjects, params)
 
-    companion object {
-        const val TAG = "Runtime"
-    }
 }
