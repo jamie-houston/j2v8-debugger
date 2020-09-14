@@ -22,13 +22,13 @@ Version 0.2.0
 Version 0.1.2
 ----------------------------
 * Fixed not working debugger on older then 4.8 version of j2v8: separate j2v8backport module is created with j2v8 v4.6.0 as dependency.
-* j2v8backport is being published together with j2v8-debugger
+* j2v8backport is being published together with j2v8-inspector
 
 Version 0.1.1
 ----------------------------
 * Do not skip debugging "pause" event if some V8 local variables can't be converted to Java and sent to Chrome Debugger
 * Added info about handled exception if debug event (break-point hit) can't be send to Chrome DevTools (Debugger UI)
-* Added ability to use j2v8-debugger lib with older then 4.8 version of j2v8: E.g. version 4.6 (latest published for mac and windows)
+* Added ability to use j2v8-inspector lib with older then 4.8 version of j2v8: E.g. version 4.6 (latest published for mac and windows)
 * Added info about set-up, usage and known issues to Readme
 
 Version 0.1

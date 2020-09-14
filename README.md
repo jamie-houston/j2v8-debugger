@@ -1,4 +1,4 @@
-# J2V8-Debugger
+# j2v8-inspector
 
 This project is an add-on for the excellent [J2V8 Project](https://github.com/eclipsesource/J2V8).
 
@@ -26,16 +26,16 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.3') // {
+    implementation ('com.github.AlexTrotsenko:j2v8-inspector:0.2.3') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
 }
 ```
 
-**Note:** current `j2v8-debugger` version is designed for `J2V8` version _6.1+_.
+**Note:** current `j2v8-inspector` version is designed for `J2V8` version _6.1+_.
 
-Use [0.1.2](https://github.com/AlexTrotsenko/j2v8-debugger/tree/0.1.2) when debugging of older J2V8 _(4.6.0+)_ is required.  
+Use [0.1.2](https://github.com/AlexTrotsenko/j2v8-inspector/tree/0.1.2) when debugging of older J2V8 _(4.6.0+)_ is required.  
 
 ## Usage
 
@@ -55,7 +55,7 @@ Use `V8Debugger.createDebuggableV8Runtime()` instead of `V8.createV8Runtime()`
     val debuggableV8Runtime : Future<V8> = V8Debugger.createDebuggableV8Runtime(v8Executor, globalAlias, enableLogging)
 ```
 
-See [sample project](https://github.com/AlexTrotsenko/j2v8-debugger/blob/master/j2v8-debugger-sample/src/main/java/com/alexii/j2v8debugging/sample/ExampleActivity.kt) for more info.
+See [sample project](https://git.soma.salesforce.com/MobilePlatform/j2v8-inspector/blob/main/j2v8-inspector-sample/src/main/java/com/salesforce/j2v8debugging/sample/ExampleActivity.kt) for more info.
 
 ### Notes regarding J2V8 threads.
 - Creation and clean-up of V8 should run on fixed V8 thread.
